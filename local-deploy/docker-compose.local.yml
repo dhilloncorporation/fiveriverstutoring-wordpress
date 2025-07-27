@@ -1,0 +1,27 @@
+services:
+  # WordPress
+  fiverivertutoring-wp:
+    image: wordpress:latest
+    container_name: fiverivertutoring-wp-local
+    restart: always
+    ports:
+      - "8082:80"
+    volumes:
+      - ../fiverivertutoring_wordpress/wp-content:/var/www/html/wp-content
+      - ../config/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+    environment:
+      WORDPRESS_DB_HOST: ${WORDPRESS_DB_HOST:-192.168.50.158}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-fiverriversadmin}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-Password@123}
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-fiveriverstutoring_db}
+      WORDPRESS_DEBUG: 1
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_HOME', 'http://localhost:8082');
+        define('WP_SITEURL', 'http://localhost:8082');
+        define('FS_METHOD', 'direct');
+    networks:
+      - fiverivertutoring_network
+
+networks:
+  fiverivertutoring_network:
+    driver: bridge 
