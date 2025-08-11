@@ -1,6 +1,11 @@
 # DOCKER LOG COMMANDS FOR MONITORING
 # ===================================
 
+
+## Getting into Docker Container
+docker exec -it fiverivers-wp-staging bash
+
+
 # Check Production Logs
 docker-compose -f docker-compose.prod.yml logs
 

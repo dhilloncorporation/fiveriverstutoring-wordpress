@@ -13,13 +13,13 @@ docker-compose -f docker-compose.local.yml down
 # -------------------
 
 # 1. Update Environment Variables
-# Edit env.production with your actual values
+# Edit gcp-production-env.properties with your actual values
 
 # 2. Build Production Image
-docker-compose -f docker-compose.prod.yml --env-file env.production build
+docker-compose -f docker-compose.prod.yml --env-file gcp-production-env.properties build
 
 # 3. Run Production Container
-docker-compose -f docker-compose.prod.yml --env-file env.production up -d
+docker-compose -f docker-compose.prod.yml --env-file gcp-production-env.properties up -d
 
 # 4. Check Production Logs
 docker-compose -f docker-compose.prod.yml logs -f
@@ -31,13 +31,13 @@ docker-compose -f docker-compose.prod.yml down
 # --------------
 
 # Build and Run Production (One Command)
-docker-compose -f docker-compose.prod.yml --env-file env.production up -d --build
+docker-compose -f docker-compose.prod.yml --env-file gcp-production-env.properties up -d --build
 
 # Restart Production
 docker-compose -f docker-compose.prod.yml restart
 
 # Update Production (Rebuild and Restart)
-docker-compose -f docker-compose.prod.yml --env-file env.production up -d --build --force-recreate
+docker-compose -f docker-compose.prod.yml --env-file gcp-production-env.properties up -d --build --force-recreate
 
 # CLEANUP COMMANDS
 # ----------------

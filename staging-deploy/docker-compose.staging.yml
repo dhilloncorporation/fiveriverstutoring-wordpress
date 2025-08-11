@@ -1,0 +1,36 @@
+services:
+  # Five Rivers Tutoring - Staging Environment (Custom Docker Image)
+  fiverivers-wp:
+    image: fiverivertutoring-wordpress:latest
+    container_name: fiverivers-wp-staging
+    restart: always
+    ports:
+      - "8083:80"
+    environment:
+      # External Database Configuration
+      WORDPRESS_DB_HOST: 192.168.50.158
+      WORDPRESS_DB_USER: fiveriversadmin
+      WORDPRESS_DB_PASSWORD: Password@123
+      WORDPRESS_DB_NAME: fiveriverstutoring_staging_db
+      
+      # WordPress Site Configuration
+      WORDPRESS_HOME: http://localhost:8083
+      WORDPRESS_SITEURL: http://localhost:8083
+      WORDPRESS_DEBUG: 1
+      WP_ENVIRONMENT_TYPE: staging
+    volumes:
+      # Persistent storage for uploads and cache
+      - fiverivers_uploads:/var/www/html/wp-content/uploads
+      - fiverivers_cache:/var/www/html/wp-content/cache
+      # NO wp-content mount (uses image content)
+    networks:
+      - fiverivers_network
+    # No depends_on - external database connection
+
+volumes:
+  fiverivers_uploads:
+  fiverivers_cache:
+
+networks:
+  fiverivers_network:
+    driver: bridge 

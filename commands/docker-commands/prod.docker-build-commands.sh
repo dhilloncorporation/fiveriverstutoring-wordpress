@@ -8,7 +8,7 @@ docker-compose -f docker-compose.prod.yml build
 docker-compose -f docker-compose.prod.yml build --no-cache
 
 # Build with Environment Variables
-docker-compose -f docker-compose.prod.yml --env-file env.production build
+docker-compose -f docker-compose.prod.yml --env-file gcp-production-env.properties build
 
 # Build Using Docker Directly
 docker build -t valueladder/wordpress-production:latest .
@@ -20,4 +20,4 @@ docker build -t valueladder/wordpress-production:v1.0 .
 docker build -t valueladder/wordpress-production:$(date +%Y%m%d) .
 
 # Build and Run in One Command
-docker-compose -f docker-compose.prod.yml --env-file env.production up -d --build 
+docker-compose -f docker-compose.prod.yml --env-file gcp-production-env.properties up -d --build 
