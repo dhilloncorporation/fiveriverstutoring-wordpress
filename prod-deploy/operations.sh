@@ -63,12 +63,12 @@ show_help() {
     echo "  component-status   # Check status of all components"
     echo
     echo "=========================================="
-    echo "💰 COST OPTIMIZATION & RESOURCE CONTROL"
+    echo "💰 COST OPTIMIZATION"
     echo "=========================================="
-    echo "  winddown           # Stop ALL resources (VM + Cloud SQL) - save ~$31/month"
-    echo "  windup             # Start all resources back up"
-    echo "  windstatus         # Check winddown status"
-    echo "  cost-estimate      # Estimate monthly cost savings"
+    echo "  winddown           # Stop VM and Cloud SQL (cost savings)"
+    echo "  windup             # Start VM and Cloud SQL (restore service)"
+    echo "  check-billing      # Check current billing and costs"
+    echo "  estimate_costs     # Estimate monthly costs and savings"
     echo
     echo "=========================================="
     echo "🧹 MAINTENANCE & CLEANUP"
@@ -117,16 +117,20 @@ show_help() {
     echo "=========================================="
     echo "🚀 MOST FREQUENTLY USED COMMANDS"
     echo "=========================================="
-    echo "  wp-status          # Check WordPress application status (daily)"
-    echo "  wp-restart         # Restart WordPress application (when needed)"
-    echo "  wp-logs            # View WordPress application logs (troubleshooting)"
-    echo "  wp-start           # Start WordPress application"
-    echo "  wp-stop            # Stop WordPress application"
-    echo "  status             # Check overall infrastructure status (daily)"
-    echo "  component-status   # Check all component statuses (overview)"
-    echo "  db-status          # Check database connection status"
-    echo "  https-status       # Check HTTPS certificate status"
-    echo "  cleanup-images     # Clean up old Docker images"
+    echo "  ./operations.sh wp-status          # Check WordPress application status (daily)"
+    echo "  ./operations.sh wp-restart         # Restart WordPress application (when needed)"
+    echo "  ./operations.sh wp-logs            # View WordPress application logs (troubleshooting)"
+    echo "  ./operations.sh wp-start           # Start WordPress application"
+    echo "  ./operations.sh wp-stop            # Stop WordPress application"
+    echo "  ./operations.sh status             # Check overall infrastructure status (daily)"
+    echo "  ./operations.sh component-status   # Check all component statuses (overview)"
+    echo "  ./operations.sh db-status          # Check database connection status"
+    echo "  ./operations.sh https-status       # Check HTTPS certificate status"
+    echo "  ./operations.sh cleanup-images     # Clean up old Docker images"
+    echo "  ./operations.sh winddown           # Stop VM and Cloud SQL (cost savings)"
+    echo "  ./operations.sh windup             # Start VM and Cloud SQL (restore service)"
+    echo "  ./operations.sh check-billing      # Check current billing and costs"
+    echo "  ./operations.sh estimate-costs     # Estimate monthly costs and savings"
     echo
     echo "=========================================="
     echo "💡 QUICK REFERENCE"
@@ -1745,6 +1749,103 @@ troubleshoot_ssh() {
     return 1
 }
 
+check_billing() {
+    print_header "💰 Current Billing & Costs"
+    echo
+    
+    echo "📊 Checking current billing information..."
+    echo
+    
+    # Check current month's billing
+    echo "📅 Current Month Billing:"
+    echo "=========================="
+    gcloud billing accounts list --format="table(ACCOUNT_ID,NAME,OPEN,MASTER_ACCOUNT_ID)" 2>/dev/null || echo "❌ Unable to access billing accounts"
+    echo
+    
+    # Check project billing
+    echo "🏗️  Project Billing:"
+    echo "===================="
+    gcloud billing projects describe storied-channel-467012-r6 --format="table(projectId,billingAccountName,billingEnabled)" 2>/dev/null || echo "❌ Unable to access project billing"
+    echo
+    
+    # Get current month costs
+    echo "💵 Current Month Costs:"
+    echo "========================"
+    
+    # Get current month start and end dates
+    current_month=$(date +%Y-%m)
+    month_start="${current_month}-01"
+    month_end=$(date -d "$(date +%Y-%m-01) +1 month -1 day" +%Y-%m-%d)
+    
+    echo "Period: $month_start to $month_end"
+    echo
+    
+    # Resource usage that affects billing
+    echo "🔍 Resource Usage & Cost Impact:"
+    echo "================================="
+    
+    # Check VM status and estimate costs
+    echo "🖥️  Compute Engine (jamr-websites-prod-wordpress):"
+    vm_status=$(gcloud compute instances describe jamr-websites-prod-wordpress --zone=australia-southeast1-a --format="value(status)" 2>/dev/null)
+    if [ "$vm_status" = "RUNNING" ]; then
+        echo "  ✅ Status: RUNNING"
+        echo "  💰 Cost: ~$0.50/hour (~$15-20/day, ~$450-600/month)"
+        echo "  📍 Zone: australia-southeast1-a (Sydney)"
+    else
+        echo "  💰 Status: $vm_status"
+        echo "  💰 Cost: MINIMAL (only storage costs ~$2-5/month)"
+    fi
+    
+    # Check Cloud SQL status and estimate costs
+    echo "🗄️  Cloud SQL (jamr-websites-db-prod):"
+    sql_status=$(gcloud sql instances describe jamr-websites-db-prod --format="value(state)" 2>/dev/null)
+    if [ "$sql_status" = "RUNNABLE" ]; then
+        echo "  ✅ Status: RUNNABLE"
+        echo "  💰 Cost: ~$0.30/hour (~$7-8/day, ~$200-250/month)"
+        echo "  📍 Region: australia-southeast1"
+    else
+        echo "  💰 Status: $sql_status"
+        echo "  💰 Cost: MINIMAL (only storage costs ~$1-3/month)"
+    fi
+    
+    # Check storage costs
+    echo "💾 Storage Costs:"
+    echo "  📁 VM Boot Disk: ~$5-10/month"
+    echo "  🗄️  Database Storage: ~$1-3/month"
+    echo "  🐳 Container Registry: ~$1-5/month"
+    
+    echo
+    
+    # Calculate total estimated costs
+    echo "💰 Total Estimated Monthly Costs:"
+    echo "=================================="
+    if [ "$vm_status" = "RUNNING" ] && [ "$sql_status" = "RUNNABLE" ]; then
+        echo "  🟢 RUNNING: ~$650-850/month (VM + DB + Storage)"
+        echo "  💡 SAVINGS: Use 'winddown' to save ~$400-600/month"
+    elif [ "$vm_status" = "TERMINATED" ] && [ "$sql_status" = "STOPPED" ]; then
+        echo "  🟡 STOPPED: ~$10-20/month (Storage only)"
+        echo "  💡 COST: ~95% savings achieved!"
+    else
+        echo "  🟡 PARTIAL: Mixed status - check individual resources above"
+    fi
+    
+    echo
+    
+    # Cost optimization tips
+    echo "💡 Cost Optimization Tips:"
+    echo "=========================="
+    echo "  • Use 'winddown' to stop VM and Cloud SQL when not needed"
+    echo "  • Use 'windup' to restore services when needed"
+    echo "  • Monitor with 'status' and 'component-status'"
+    echo "  • Clean up old Docker images with 'cleanup-images'"
+    echo "  • Current status: VM=$vm_status, DB=$sql_status"
+    
+    echo
+    echo "🌐 For detailed billing: https://console.cloud.google.com/billing"
+    echo "📱 For cost alerts: Set up billing alerts in Google Cloud Console"
+    echo "📊 For real-time costs: https://console.cloud.google.com/cost"
+}
+
 # Check if no arguments provided
 if [ $# -eq 0 ]; then
     show_help
@@ -1819,6 +1920,9 @@ case "$1" in
         ;;
     cost-estimate)
         estimate_costs
+        ;;
+    check-billing)
+        check_billing
         ;;
     
     # HTTPS & Security
