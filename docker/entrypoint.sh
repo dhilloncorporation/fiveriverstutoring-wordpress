@@ -83,7 +83,7 @@ install_wordpress() {
             --title="Five Rivers Tutoring" \
             --admin_user=admin \
             --admin_password=admin123 \
-            --admin_email=admin@fiverivertutoring.com \
+            --admin_email=admin@fiveriverstutoring.com \
             --allow-root
         echo "✅ WordPress installed successfully"
     else

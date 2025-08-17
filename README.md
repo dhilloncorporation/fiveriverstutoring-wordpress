@@ -278,10 +278,22 @@ cd ../databasemigration
 - Execution time: 300 seconds
 - Security settings optimized for WordPress
 
+### **Infrastructure Properties** (`prod-deploy/properties/jamr-gcp-foundations.tf`):
+- **⚠️ READONLY FILE** - Do not modify this file directly
+- Contains GCP infrastructure blueprint (project, region, zone, network configuration)
+- Used as reference by Terraform deployment scripts
+- Managed by foundational infrastructure team
+- Contains:
+  - GCP Project Configuration (ID, name, region, zone)
+  - Network Configuration (VPC, subnets, firewall rules)
+  - Database Configuration (MySQL settings, users, backup policies)
+  - Resource Naming Conventions
+  - Service Account and IAM Roles
+
 ### **Environment Variables**:
-- **Development**: `local-deploy/env.example`
+- **Development**: `develop-deploy/env.example`
 - **Staging**: `staging-deploy/env.staging`
-- **Production**: `gcp-deploy/databasemigration/env.production`
+- **Production**: `prod-deploy/databasemigration/env.production`
 
 ## 🛠️ **Plugin Management with WP-CLI**
 

@@ -1,236 +1,265 @@
-# 🚀 Five Rivers Tutoring - Production Deployment
+# 🚀 Five Rivers Tutoring - Production Deployment (Modular Architecture)
 
-This directory contains the complete production deployment infrastructure for the Five Rivers Tutoring WordPress site.
+This directory contains the production deployment infrastructure for the Five Rivers Tutoring WordPress application on Google Cloud Platform (GCP) using a **modular Terraform architecture**.
 
-## 📁 Directory Structure
+## 🏗️ What This Deployment Does
+
+This **modular Terraform deployment** creates a WordPress production environment by:
+- **Provisioning compute resources** (VM, disk, IP, monitoring)
+- **Setting up database infrastructure** (Cloud SQL, users, privileges)
+- **Deploying WordPress application** (container, configuration, health checks)
+- **Managing shared infrastructure** (monitoring, logging, security)
+
+## 📁 Current Directory Structure
 
 ```
 prod-deploy/
-├── 📁 terraform/                    # Infrastructure as Code (GCP)
-├── 📁 databasemigration/           # Database deployment & migration
-├── 📁 deployment/                  # Application deployment scripts
-├── 📁 config/                      # Configuration templates
-├── 📁 docs/                        # Documentation & references
-├── 📁 scripts/                     # Common functions & utilities
-├── 📄 deploy.sh                    # Main deployment orchestrator
-├── 📄 EXECUTION_ORDER.md           # Complete deployment workflow
-└── 📄 FILE_ORGANIZATION.md         # File organization guide
+├── terraform/                    # Modular Terraform infrastructure
+│   ├── main.tf                  # Main orchestration file
+│   ├── variables.tf             # Root variables
+│   ├── outputs.tf               # Root outputs
+│   ├── shared/                  # Shared infrastructure module
+│   │   ├── main.tf             # Monitoring, logging
+│   │   ├── variables.tf        # Shared variables
+│   │   └── outputs.tf          # Shared outputs
+│   ├── database/                # Database module
+│   │   ├── main.tf             # Cloud SQL, users
+│   │   ├── variables.tf        # Database variables
+│   │   └── outputs.tf          # Database outputs
+│   ├── compute/                 # Compute module
+│   │   ├── main.tf             # VM, disk, IP, monitoring
+│   │   ├── variables.tf        # Compute variables
+│   │   └── outputs.tf          # Compute outputs
+│   ├── wordpress/               # WordPress module
+│   │   ├── main.tf             # App deployment, config
+│   │   ├── variables.tf        # WordPress variables
+│   │   └── outputs.tf          # WordPress outputs
+│   ├── plans/                   # Terraform plan files
+│   ├── wordpress.tfvars         # WordPress configuration
+│   └── terraform.tfvars         # GCP project configuration
+├── properties/                   # Environment configuration
+│   └── jamr-gcp-foundations.tf  # JAMR-managed infrastructure
+├── databasemigration/            # Database scripts (reference)
+├── scripts/                      # Deployment scripts
+│   ├── deploy-wordpress.sh      # WordPress deployment
+│   └── wordpress-management.sh  # WordPress management
+├── deploy.sh                     # Main deployment script
+└── README.md                     # This file
 ```
 
-## 🎯 Quick Start
+## 🚀 Quick Start Guide
 
-### **1. Validate Configuration**
+### Prerequisites
+
+1. **Terraform** (version >= 1.0.0) installed and in PATH
+2. **Google Cloud CLI** (`gcloud`) authenticated and configured
+3. **Access to GCP project** `storied-channel-467012-r6`
+
+### Step 1: Verify Infrastructure Assumptions
+
+This deployment uses these existing resources:
+- **GCP Project**: `storied-channel-467012-r6`
+- **Region**: `australia-southeast1`
+- **Zone**: `australia-southeast1-a`
+- **VPC**: `jamr-websites-vpc` (managed by JAMR)
+- **Subnet**: `jamr-websites-vpc-web-subnet-prod`
+
+### Step 2: Deploy Infrastructure
+
+**Modular Deployment (Recommended):**
 ```bash
-cd prod-deploy
-./scripts/validate-config.sh
+# Deploy shared infrastructure first
+./deploy.sh shared-deploy
+
+# Deploy database resources
+./deploy.sh database-deploy
+
+# Deploy compute resources
+./deploy.sh compute-deploy
+
+# Deploy WordPress application
+./deploy.sh wordpress-deploy
 ```
 
-### **2. Complete Deployment**
+**Complete Deployment:**
 ```bash
-./deploy.sh full
+./deploy.sh apply
 ```
 
-### **3. Individual Phases**
-```bash
-./deploy.sh infrastructure    # Deploy GCP infrastructure
-./deploy.sh database         # Set up production database
-./deploy.sh application      # Deploy WordPress application
-./deploy.sh verify           # Verify deployment status
-```
+## 🎯 Available Commands
 
-## 🚀 Main Deployment Script
-
-The `deploy.sh` script is the central orchestrator for all production deployments.
-
-### **Usage:**
-```bash
-./deploy.sh [OPTIONS] <deployment-type>
-```
-
-### **Options:**
-- `-e, --env FILE` - Custom environment file path
-- `-y, --yes` - Skip confirmation prompts
-- `-v, --verbose` - Enable verbose output
-- `-h, --help` - Show help message
-
-### **Examples:**
-```bash
-# Complete deployment with prompts
-./deploy.sh full
-
-# Complete deployment without prompts
-./deploy.sh full -y
-
-# Use custom environment file
-./deploy.sh database -e custom.env
-
-# Deploy only infrastructure
-./deploy.sh infrastructure
-```
-
-## 🔧 Scripts Directory
-
-### **Common Functions (`scripts/common-functions.sh`)**
-Shared functions used across all deployment scripts:
-- **Logging**: Colored output with emojis
-- **Error Handling**: Automatic error trapping and reporting
-- **Validation**: Environment and file validation
-- **Database**: Connection testing and management
-- **Utilities**: Backup, confirmation prompts, service waiting
-
-### **Configuration Validator (`scripts/validate-config.sh`)**
-Comprehensive validation of all deployment configurations:
-- Environment variable validation
-- Terraform configuration checks
-- Docker Compose validation
-- Directory structure verification
-- Script permissions checking
-- External dependency validation
-
-## 📋 Deployment Phases
-
-### **Phase 1: Infrastructure Setup** 🏗️
-- Deploy GCP VM instance
-- Configure networking and security
-- Set up persistent storage
-- Assign static IP addresses
-
-### **Phase 2: Database Migration** 🗄️
-- Create production database
-- Migrate data from staging/development
-- Update URLs and configurations
-- Verify database integrity
-
-
-
-### **Phase 3: Application Deployment** 🚀
-- Deploy Docker containers with pre-built content
-- Configure WordPress settings
-- Activate plugins and themes
-- Verify application functionality
-
-## ⚙️ Configuration
-
-### **Environment Configuration**
-The main environment file is located at `databasemigration/env.production`:
+### Modular Deployment
 
 ```bash
-# Database Connection
-DB_HOST=your-production-db-host
-DB_USER=your-db-user
-DB_PASSWORD=your-db-password
-DB_NAME=your-production-db
+# Component-specific deployments
+./deploy.sh shared-deploy      # Shared infrastructure
+./deploy.sh database-deploy    # Database resources
+./deploy.sh compute-deploy     # Compute resources
+./deploy.sh wordpress-deploy   # WordPress application
 
-# WordPress Configuration
-WORDPRESS_HOME=https://yourdomain.com
-WORDPRESS_SITEURL=https://yourdomain.com
-WP_ENVIRONMENT_TYPE=production
-WORDPRESS_DEBUG=0
+# Component management
+./deploy.sh compute-stop       # Stop compute resources
+./deploy.sh compute-start      # Start compute resources
+./deploy.sh component-status   # Check all components
 ```
 
-### **Terraform Configuration**
-Infrastructure configuration in `terraform/production.tfvars`:
-
-```hcl
-project_id     = "your-gcp-project"
-region         = "us-central1"
-zone           = "us-central1-a"
-machine_type   = "e2-medium"
-disk_size_gb   = 50
-```
-
-## 🔍 Validation
-
-### **Pre-Deployment Validation**
-Always run the configuration validator before deployment:
+### Infrastructure Management
 
 ```bash
-./scripts/validate-config.sh
+# Show what will be deployed
+./deploy.sh plan
+
+# Show current status
+./deploy.sh status
+
+# Initialize Terraform
+./deploy.sh init
+
+# Destroy all resources (⚠️ DANGEROUS)
+./deploy.sh destroy
 ```
 
-This will check:
-- ✅ Required files and directories
-- ✅ Environment variable completeness
-- ✅ Configuration file validity
-- ✅ Script permissions
-- ✅ External dependencies
-- ✅ URL format validation
-- ✅ Production readiness checks
+### Cost Optimization
 
-### **Common Validation Issues**
-- **Missing environment variables**
-- **Development URLs in production config**
-- **Insufficient disk size or machine type**
-- **Missing required scripts or directories**
+```bash
+# Stop all resources for cost savings
+./deploy.sh winddown
 
-## 🚨 Error Handling
+# Start all resources back up
+./deploy.sh windup
 
-### **Automatic Error Handling**
-All scripts include:
-- **Error trapping**: Automatic error detection and reporting
-- **Graceful failures**: Clear error messages with line numbers
-- **Rollback support**: Automatic cleanup on failure
-- **Detailed logging**: Comprehensive operation logging
+# Check winddown status
+./deploy.sh windstatus
 
-### **Troubleshooting**
-1. **Check logs**: All operations are logged with timestamps
-2. **Validate config**: Run validation script to identify issues
-3. **Check dependencies**: Ensure all required tools are available
-4. **Review permissions**: Verify script and file permissions
+# Estimate cost savings
+./deploy.sh cost-estimate
+```
 
-## 📚 Documentation
+## 🔧 Configuration Details
 
-### **Execution Order (`EXECUTION_ORDER.md`)**
-Complete step-by-step deployment workflow with commands and expected outputs.
+### What's Hardcoded (Don't Change)
 
-### **File Organization (`FILE_ORGANIZATION.md`)**
-Detailed explanation of directory structure and file purposes.
+These values are built into the Terraform files:
+- **Project ID**: `storied-channel-467012-r6`
+- **Region**: `australia-southeast1`
+- **Zone**: `australia-southeast1-a`
+- **VPC**: `jamr-websites-vpc`
+- **Subnet**: `jamr-websites-vpc-web-subnet-prod`
+- **Resource Names**: All use `jamr-websites-prod-` prefix
 
-### **Database Migration (`databasemigration/README.md`)**
-Specific database migration procedures and troubleshooting.
+### What You Can Configure
 
-### **Terraform (`terraform/README.md`)**
-Infrastructure configuration and deployment details.
+- **WordPress settings** (via `wordpress.tfvars`)
+- **Database credentials** (via `wordpress.tfvars`)
+- **GCP project settings** (via `terraform.tfvars`)
 
-## 🔄 Maintenance
+## 🏗️ Resources Created
 
-### **Regular Tasks**
-- **Configuration validation**: Run before each deployment
-- **Backup verification**: Ensure backup procedures work
-- **Dependency updates**: Keep tools and scripts current
-- **Documentation updates**: Maintain current procedures
+### Shared Module
+- **Monitoring Group**: WordPress resource monitoring
+- **Logging Sink**: Centralized logging (when bucket exists)
 
-### **Updates and Upgrades**
-- **Infrastructure**: Use Terraform for infrastructure changes
-- **Applications**: Update Docker images and configurations
-- **Scripts**: Enhance error handling and validation
-- **Documentation**: Keep procedures current
+### Database Module
+- **Cloud SQL Database**: `fiverivertutoring_production_db`
+- **Admin User**: `fiverivertutoring_admin`
+- **App User**: `fiverivertutoring_app`
 
-## 🆘 Support
+### Compute Module
+- **VM Instance**: `jamr-websites-prod-wordpress` (Container-Optimized OS)
+- **Static IP**: Public IP address for the VM
+- **Persistent Disk**: 50GB disk for wp-content
+- **Backup Policy**: Daily snapshot schedule
+- **Uptime Monitoring**: HTTPS uptime check
 
-### **Common Issues**
-1. **Configuration validation failures**
-2. **Database connection issues**
-3. **Infrastructure deployment problems**
-4. **Content migration failures**
+### WordPress Module
+- **Application Configuration**: Dynamic WordPress config
+- **Security Keys**: Randomly generated WordPress keys
+- **Health Checks**: Application deployment verification
 
-### **Getting Help**
-1. **Check logs**: Review detailed operation logs
-2. **Validate config**: Run configuration validation
-3. **Review documentation**: Check relevant README files
-4. **Check prerequisites**: Verify all dependencies are met
+## 🌐 Network & Security
 
-## 🎉 Success Indicators
+- **Public Access**: VM runs with public IP for direct access
+- **Network Security**: Uses existing JAMR-managed VPC and firewall
+- **Encryption**: All disks encrypted at rest
+- **Monitoring**: Uptime checks and daily backups
 
-### **Successful Deployment**
-- ✅ All validation checks pass
-- ✅ Infrastructure deployed without errors
-- ✅ Database migration completes successfully
-- ✅ Content migration completes without issues
-- ✅ Application responds on expected ports
-- ✅ WordPress site loads correctly
-- ✅ All services are healthy and responsive
+## 📊 Monitoring & Logging
+
+- **Cloud Monitoring**: Resource utilization metrics
+- **Uptime Checks**: HTTPS availability monitoring
+- **Backup Policies**: Daily disk snapshots
+- **Cloud Logging**: Centralized resource logs
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **Terraform State Locked**
+   ```bash
+   terraform force-unlock <lock-id>
+   ```
+
+2. **Authentication Issues**
+   ```bash
+   gcloud auth login
+   gcloud config set project storied-channel-467012-r6
+   ```
+
+3. **Resource Creation Fails**
+   - Check GCP quotas and limits
+   - Verify billing is enabled
+   - Check IAM permissions
+
+### Required GCP APIs
+
+Ensure these are enabled:
+- Compute Engine API
+- Cloud SQL Admin API
+- Cloud Monitoring API
+- Cloud Resource Manager API
+
+## 🔄 Deployment Workflow
+
+```
+Shared → Database → Compute → WordPress
+  ↓         ↓         ↓         ↓
+Monitoring  SQL      VM+Disk   App+Config
+```
+
+## 📝 Maintenance
+
+### Regular Tasks
+- **Backup Verification**: Test restore procedures monthly
+- **Security Updates**: Keep Terraform updated
+- **Cost Monitoring**: Review GCP billing
+- **Performance Review**: Monitor VM metrics
+
+### Updates
+1. Modify appropriate `.tfvars` file with new values
+2. Run `./deploy.sh plan` to review changes
+3. Run `./deploy.sh apply` to apply updates
+4. Test the updated environment
+
+## 🤝 Contributing
+
+When making changes:
+1. **Update appropriate module** (shared, database, compute, wordpress)
+2. **Update variables** in corresponding `variables.tf`
+3. **Test in staging** before production
+4. **Document changes** in this README
+5. **Follow naming conventions** in the codebase
+
+## 📞 Support
+
+For issues:
+1. Check troubleshooting section above
+2. Review GCP Cloud Console
+3. Check Terraform state: `terraform show`
+4. Review Cloud Logging
+5. Use component-specific commands for targeted troubleshooting
 
 ---
 
-**🚀 Ready to deploy to production? Start with configuration validation!**
+**Last Updated**: December 2024  
+**Version**: 3.0.0 (Modular Architecture)  
+**Maintainer**: DevOps Team

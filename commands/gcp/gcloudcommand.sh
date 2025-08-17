@@ -38,3 +38,6 @@ terraform show valueladder-plan.tfplan
 
 # Step 3: Apply the exact plan
 terraform apply valueladder-plan.tfplan
+
+
+gcloud sql connect INSTANCE_NAME --user=root
