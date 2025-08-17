@@ -43,6 +43,21 @@
 #   target_tags   = ["web-server"]
 # }
 
+# Firewall rule to allow WordPress VM to connect to Cloud SQL
+resource "google_compute_firewall" "wordpress_to_sql" {
+  name    = "${var.resource_prefix}-wordpress-to-sql"
+  network = var.vpc_name
+  project = var.gcp_project_id
+
+  allow {
+    protocol = "tcp"
+    ports    = ["3306"]  # MySQL port
+  }
+
+  source_tags = ["wordpress"]  # Only WordPress VMs
+  # Allow outbound connections to any IP (standard for database access)
+}
+
 # Firewall rules for SSH access (enabled for Cloud IAP)
 resource "google_compute_firewall" "ssh_access" {
   name    = "${var.resource_prefix}-ssh-access"

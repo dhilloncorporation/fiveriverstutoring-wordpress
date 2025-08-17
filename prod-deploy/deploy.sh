@@ -248,13 +248,12 @@ show_help() {
     echo "=========================================="
     echo "🌐 WORDPRESS APPLICATION MANAGEMENT"
     echo "=========================================="
-    echo "  deploy-app         # Deploy WordPress application (runs entrypoint.sh)"
-    echo "  deploy-wordpress   # Same as deploy-app (alias)"
-    echo "  app-stop           # Stop WordPress application"
-    echo "  app-start          # Start WordPress application"
-    echo "  app-status         # Check WordPress application status"
-    echo "  app-logs           # View WordPress application logs"
-    echo "  app-backup         # Create WordPress backup"
+    echo "  wp-deploy          # Deploy WordPress application (runs entrypoint.sh)"
+    echo "  wp-stop            # Stop WordPress application"
+    echo "  wp-start           # Start WordPress application"
+    echo "  wp-status          # Check WordPress application status"
+    echo "  wp-logs            # View WordPress application logs"
+    echo "  wp-backup          # Create WordPress backup"
     echo
     echo "=========================================="
     echo "💻 COMPUTE RESOURCE MANAGEMENT"
@@ -274,19 +273,17 @@ show_help() {
     echo "=========================================="
     echo "🧹 MAINTENANCE & CLEANUP"
     echo "=========================================="
-    echo "  list-images        # Show current Docker images in registry"
-    echo "  show-images        # Same as list-images (alias)"
-    echo "  cleanup-images     # Clean up old Docker images (reduce storage costs)"
-    echo "  cleanup-docker     # Same as cleanup-images (alias)"
+    echo "  Note: Docker image management and cleanup operations"
+    echo "        have been moved to ./operations.sh"
+    echo "  Use: ./operations.sh cleanup-images"
+    echo "       ./operations.sh preview-cleanup"
     echo
     echo "=========================================="
     echo "🔒 HTTPS & SECURITY MANAGEMENT"
     echo "=========================================="
-    echo "  https-setup     # Automated HTTPS setup with Let's Encrypt (no input required)"
-    echo "  https-status    # Check HTTPS configuration status"
-    echo "  https-test      # Test HTTPS connectivity and SSL certificates"
-    echo "  https-renew     # Manually renew SSL certificates"
-    echo "  https-logs      # View HTTPS setup and configuration logs"
+    echo "  wp-https-setup     # Automated HTTPS setup with Let's Encrypt (one-time)"
+    echo "  Note: HTTPS status, testing, and renewal moved to ./operations.sh"
+    echo "  Use: ./operations.sh https-status, https-test, https-renew, https-logs"
     echo
     echo "=========================================="
     echo "📋 COMMON USAGE EXAMPLES"
@@ -309,16 +306,13 @@ show_help() {
     echo "  $0 windup          # Start everything back up"
     echo
     echo "  # Maintenance:"
-    echo "  $0 cleanup-images  # Remove old Docker images"
+    echo "  Note: Docker cleanup and operational tasks moved to ./operations.sh"
     echo "  $0 app-backup      # Create WordPress backup"
     echo "  $0 app-start       # Start WordPress application"
-    echo "  $0 app-stop        # Stop WordPress application"
     echo
     echo "  # HTTPS setup:"
-    echo "  $0 https-setup     # Setup HTTPS automatically (reads from wordpress.tfvars)"
-    echo "  $0 https-status    # Check HTTPS status"
-    echo "  $0 https-test      # Test HTTPS connectivity"
-    echo "  $0 https-logs      # View HTTPS logs"
+    echo "  $0 wp-https-setup  # Setup HTTPS automatically (reads from wordpress.tfvars)"
+    echo "  Note: HTTPS monitoring and renewal moved to ./operations.sh"
 }
 
 # Function to generate infrastructure graph
@@ -508,19 +502,29 @@ cleanup_keep_latest_versions() {
         local total_tags=$(echo "$all_tags" | wc -l)
         print_status "  Total versions: $total_tags"
         
+        # ALWAYS preserve the 'latest' tag if it exists
+        local has_latest=$(echo "$all_tags" | grep -q "latest" && echo "yes" || echo "no")
+        if [ "$has_latest" = "yes" ]; then
+            print_status "  Preserving 'latest' tag (always kept)"
+        fi
+        
         if [ $total_tags -gt $keep_count ]; then
-            # Get tags to remove (all except the latest N)
-            local tags_to_remove=$(echo "$all_tags" | tail -n +$((keep_count + 1)))
+            # Get tags to remove (all except the latest N, but NEVER remove 'latest')
+            local tags_to_remove=$(echo "$all_tags" | tail -n +$((keep_count + 1)) | grep -v "latest")
             local remove_count=$(echo "$tags_to_remove" | wc -l)
             
-            print_status "  Removing $remove_count old version(s)..."
-            
-            for tag in $tags_to_remove; do
-                print_status "    Removing: $image_name:$tag"
-                gcloud container images delete "$image_name:$tag" --quiet 2>/dev/null || {
-                    print_warning "    Failed to remove $image_name:$tag"
-                }
-            done
+            if [ $remove_count -gt 0 ]; then
+                print_status "  Removing $remove_count old version(s) (excluding 'latest' if present)..."
+                
+                for tag in $tags_to_remove; do
+                    print_status "    Removing: $image_name:$tag"
+                    gcloud container images delete "$image_name:$tag" --quiet 2>/dev/null || {
+                        print_warning "    Failed to remove $image_name:$tag"
+                    }
+                done
+            else
+                print_status "  No cleanup needed (only 'latest' tag exists or all tags are recent)"
+            fi
         else
             print_status "  No cleanup needed (only $total_tags version(s) exist)"
         fi
@@ -531,21 +535,34 @@ cleanup_keep_latest_versions() {
 cleanup_keep_current_only() {
     print_status "Keeping only the current production image..."
     
-    # Get current image info
-    local current_image="gcr.io/$CURRENT_PROJECT/fiverivers-tutoring:latest"
+    # Get current project
+    local current_project=$(gcloud config get-value project 2>/dev/null || echo "NOT SET")
     
     # List all images
-    local all_images=$(gcloud container images list --repository=gcr.io/$CURRENT_PROJECT --format="value(name)")
+    local all_images=$(gcloud container images list --repository=gcr.io/$current_project --format="value(name)")
     
     for image in $all_images; do
-        if [ "$image" != "$current_image" ]; then
-            print_status "Removing: $image"
-            gcloud container images delete "$image" --quiet 2>/dev/null || {
-                print_warning "Failed to remove $image"
-            }
-        else
-            print_status "Keeping current image: $image"
+        # Check if this image has a 'latest' tag - if so, keep it
+        local has_latest_tag=$(gcloud container images list-tags $image --format="value(tags)" | grep -q "latest" && echo "yes" || echo "no")
+        
+        if [ "$has_latest_tag" = "yes" ]; then
+            print_status "Keeping image with 'latest' tag: $image"
+            continue
         fi
+        
+        # Check if this is the most recent image by timestamp
+        local latest_image=$(gcloud container images list --repository=gcr.io/$current_project --format="value(name)" --sort-by=timestamp | head -1)
+        
+        if [ "$image" = "$latest_image" ]; then
+            print_status "Keeping most recent image: $image"
+            continue
+        fi
+        
+        # Remove older images without 'latest' tag
+        print_status "Removing older image: $image"
+        gcloud container images delete "$image" --quiet 2>/dev/null || {
+            print_warning "Failed to remove $image"
+        }
     done
 }
 
@@ -614,6 +631,124 @@ list_docker_images() {
     echo "  ./deploy.sh list-images       # Show this list again"
     echo "  gcloud auth list              # Check authentication"
     echo "  gcloud config get-value project # Check current project"
+}
+
+# Function to preview cleanup (what would be deleted)
+preview_cleanup() {
+    print_header "Docker Image Cleanup Preview"
+    print_status "This will show what would be deleted without actually removing anything..."
+    
+    # Get current project
+    CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null || echo "NOT SET")
+    print_status "Current project: $CURRENT_PROJECT"
+    
+    # List current images
+    print_status "Current Docker images in Container Registry:"
+    gcloud container images list --repository=gcr.io/$CURRENT_PROJECT 2>/dev/null || {
+        print_error "Failed to list images. Check if you have access to Container Registry."
+        return 1
+    }
+    
+    echo
+    print_status "Cleanup preview options:"
+    echo "1. Preview keeping latest 2 versions of each image"
+    echo "2. Preview keeping only latest version of each image"
+    echo "3. Preview removing all images except current one"
+    echo "4. Cancel preview"
+    
+    read -p "Choose option (1-4): " preview_option
+    
+    case $preview_option in
+        1)
+            print_status "Preview: Keeping latest 2 versions of each image..."
+            preview_keep_latest_versions 2
+            ;;
+        2)
+            print_status "Preview: Keeping only latest version of each image..."
+            preview_keep_latest_versions 1
+            ;;
+        3)
+            print_status "Preview: Removing all images except current one..."
+            preview_keep_current_only
+            ;;
+        4)
+            print_status "Preview cancelled."
+            return 0
+            ;;
+        *)
+            print_error "Invalid option. Preview cancelled."
+            return 1
+            ;;
+    esac
+    
+    echo
+    print_status "Preview completed. Use './deploy.sh cleanup-images' to perform actual cleanup."
+}
+
+# Helper function to preview keeping N latest versions
+preview_keep_latest_versions() {
+    local keep_count=$1
+    print_status "Preview: Would keep latest $keep_count version(s) of each image..."
+    
+    # Get list of unique image names (without tags)
+    local image_names=$(gcloud container images list --repository=gcr.io/$CURRENT_PROJECT --format="value(name)" | sort -u)
+    
+    for image_name in $image_names; do
+        print_status "Image: $image_name"
+        
+        # Get all tags for this image, sorted by creation time (newest first)
+        local all_tags=$(gcloud container images list-tags $image_name --format="value(tags)" --sort-by=timestamp)
+        
+        # Count total tags
+        local total_tags=$(echo "$all_tags" | wc -l)
+        
+        if [ $total_tags -gt $keep_count ]; then
+            # Get tags that would be removed
+            local tags_to_remove=$(echo "$all_tags" | tail -n +$((keep_count + 1)) | grep -v "latest")
+            local remove_count=$(echo "$tags_to_remove" | wc -l)
+            
+            if [ $remove_count -gt 0 ]; then
+                print_warning "  Would remove $remove_count old version(s):"
+                echo "$tags_to_remove" | while read tag; do
+                    echo "    - $tag"
+                done
+            else
+                print_status "  No cleanup needed (only 'latest' tag exists or all tags are recent)"
+            fi
+        else
+            print_status "  No cleanup needed (only $total_tags version(s) exist)"
+        fi
+        echo
+    done
+}
+
+# Helper function to preview keeping only current image
+preview_keep_current_only() {
+    print_status "Preview: Would keep only the current production image..."
+    
+    # Get current project
+    local current_project=$(gcloud config get-value project 2>/dev/null || echo "NOT SET")
+    
+    # List all images
+    local all_images=$(gcloud container images list --repository=gcr.io/$current_project --format="value(name)")
+    
+    for image in $all_images; do
+        # Check if this image has a 'latest' tag
+        local has_latest_tag=$(gcloud container images list-tags $image --format="value(tags)" | grep -q "latest" && echo "yes" || echo "no")
+        
+        if [ "$has_latest_tag" = "yes" ]; then
+            print_status "Would keep (has 'latest' tag): $image"
+        else
+            # Check if this is the most recent image by timestamp
+            local latest_image=$(gcloud container images list --repository=gcr.io/$current_project --format="value(name)" --sort-by=timestamp | head -1)
+            
+            if [ "$image" = "$latest_image" ]; then
+                print_status "Would keep (most recent): $image"
+            else
+                print_warning "Would remove (older image): $image"
+            fi
+        fi
+    done
 }
 
 # =============================================================================
@@ -1199,74 +1334,60 @@ main() {
             check_prerequisites
             generate_graph
             ;;
-        deploy-app|        deploy-wordpress)
+        # WordPress Application Commands
+        wp-deploy|deploy-app|deploy-wordpress)
             deploy_wordpress
             ;;
-        app-stop|stop-app|wordpress-stop)
+        wp-stop|app-stop|stop-app|wordpress-stop)
             stop_wordpress
             ;;
-        app-start|start-app|wordpress-start)
+        wp-start|app-start|start-app|wordpress-start)
             start_wordpress
             ;;
-        app-logs|wordpress-logs)
+        wp-logs|app-logs|wordpress-logs)
             view_wordpress_logs
             ;;
-        app-status|wordpress-status)
+        wp-status|app-status|wordpress-status)
             check_wordpress_status
             ;;
-        app-backup|wordpress-backup)
+        wp-backup|app-backup|wordpress-backup)
             backup_wordpress
             ;;
-        cleanup-images|cleanup-docker)
-            cleanup_docker_images
-            ;;
-        list-images|show-images)
-            list_docker_images
-            ;;
-        compute-deploy)
+        
+        # Infrastructure Commands
+        wp-infra-deploy|compute-deploy)
             deploy_compute
             ;;
-        wordpress-deploy)
-            deploy_wordpress_app
-            ;;
-        database-deploy)
+        wp-db-deploy|database-deploy)
             deploy_database
             ;;
-        compute-stop)
+        wp-infra-stop|compute-stop)
             stop_compute
             ;;
-        compute-start)
+        wp-infra-start|compute-start)
             start_compute
             ;;
-        component-status)
+        wp-infra-status|component-status)
             check_component_status
             ;;
-        winddown)
+        
+        # Cost Optimization Commands
+        wp-winddown|winddown)
             winddown_resources
             ;;
-        windup)
+        wp-windup|windup)
             windup_resources
             ;;
-        windstatus)
+        wp-windstatus|windstatus)
             check_winddown_status
             ;;
-        cost-estimate)
+        wp-cost-estimate|cost-estimate)
             estimate_cost_savings
             ;;
-        https-setup)
+        
+        # HTTPS Commands
+        wp-https-setup|https-setup)
             setup_https_interactive
-            ;;
-        https-status)
-            check_https_status
-            ;;
-        https-test)
-            test_https_connectivity
-            ;;
-        https-renew)
-            renew_ssl_certificates
-            ;;
-        https-logs)
-            view_https_logs
             ;;
         help|--help|-h)
             show_help

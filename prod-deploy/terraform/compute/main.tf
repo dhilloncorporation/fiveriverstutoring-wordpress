@@ -1,5 +1,9 @@
 # Compute Module
 # This module manages VM instances, persistent disks, and compute resources
+# 
+# NOTE: This configuration uses direct Cloud SQL connections instead of Cloud SQL Proxy
+# for simplicity and better performance. The firewall rules in the shared module
+# allow the WordPress VM to connect directly to Cloud SQL on port 3306.
 
 # =============================================================================
 # COMPUTE INSTANCES
@@ -57,7 +61,7 @@ resource "google_compute_instance" "wordpress" {
           env = [
             {
               name  = "WORDPRESS_DB_HOST"
-              value = "127.0.0.1"  # Use Cloud SQL Proxy instead of direct IP
+              value = var.wordpress_db_host  # Use direct Cloud SQL IP
             },
             {
               name  = "WORDPRESS_DB_NAME"
@@ -76,11 +80,9 @@ resource "google_compute_instance" "wordpress" {
             name      = "wp-content"
             mountPath = var.wordpress_content_mount_path
           }]
-          # Install Cloud SQL Proxy on container startup
-          command = ["/bin/bash", "-c"]
-          args = [
-            "wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /usr/local/bin/cloud_sql_proxy && chmod +x /usr/local/bin/cloud_sql_proxy && /usr/local/bin/entrypoint.sh apache2-foreground"
-          ]
+          # Simple WordPress startup - no Cloud SQL Proxy needed
+          command = ["/usr/local/bin/entrypoint.sh"]
+          args = ["apache2-foreground"]
         }]
         volumes = [{
           name = "wp-content"
@@ -100,8 +102,8 @@ resource "google_compute_instance" "wordpress" {
       "https://www.googleapis.com/auth/devstorage.read_only",  # GCR access
       "https://www.googleapis.com/auth/logging.write",         # Cloud Logging
       "https://www.googleapis.com/auth/monitoring.write",      # Cloud Monitoring
-      "https://www.googleapis.com/auth/compute",               # Compute access
-      "https://www.googleapis.com/auth/sqlservice.admin"       # Cloud SQL access
+      "https://www.googleapis.com/auth/compute"                # Compute access
+      # Removed sqlservice.admin scope - no longer needed without Cloud SQL Proxy
     ]
   }
 

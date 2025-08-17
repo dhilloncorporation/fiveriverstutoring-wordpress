@@ -36,3 +36,28 @@ output "database_connection_string" {
   description = "Database connection string for WordPress"
   sensitive   = true
 }
+
+# =============================================================================
+# CLOUD SQL AUTHORIZED NETWORKS OUTPUTS
+# =============================================================================
+
+output "cloudsql_authorized_networks" {
+  description = "Networks authorized to access Cloud SQL"
+  value = {
+    instance_name        = data.google_sql_database_instance.existing_db.name
+    wordpress_vm_external = data.google_compute_instance.wordpress_vm.network_interface[0].access_config[0].nat_ip
+    vpc_internal_auto     = "10.0.1.0/24 (automatically allowed by Google)"
+    home_network          = "14.137.217.165/32"
+    status               = "Automatically configured for WordPress VM access"
+  }
+}
+
+output "cloudsql_connection_info" {
+  description = "Cloud SQL connection information"
+  value = {
+    instance_name = data.google_sql_database_instance.existing_db.name
+    project_id    = data.google_sql_database_instance.existing_db.project
+    region        = data.google_sql_database_instance.existing_db.region
+    status        = "Authorized networks automatically configured for WordPress VM access"
+  }
+}
