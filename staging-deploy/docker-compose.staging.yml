@@ -1,7 +1,7 @@
 services:
   # Five Rivers Tutoring - Staging Environment (Custom Docker Image)
   fiverivers-wp:
-    image: fiverivertutoring-wordpress:latest
+    image: fiverivertutoring:latest
     container_name: fiverivers-wp-staging
     restart: always
     ports:

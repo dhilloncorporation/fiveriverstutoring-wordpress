@@ -200,6 +200,8 @@ verify_database() {
     fi
 }
 
+
+
 # Function to activate essential plugins
 activate_plugins() {
     echo "🔌 Activating essential plugins..."
@@ -262,6 +264,8 @@ show_status() {
     echo "  Environment: ${WP_ENVIRONMENT_TYPE:-production}"
     echo "  Debug Mode: ${WORDPRESS_DEBUG:-0}"
 }
+
+
 
 # Main execution
 main() {

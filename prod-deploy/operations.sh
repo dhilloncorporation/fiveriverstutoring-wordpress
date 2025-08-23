@@ -454,51 +454,53 @@ restore_app_backup() {
 
 # Function to list current Docker images
 list_docker_images() {
-    print_header "Current Docker Images in Container Registry"
+    print_header "Current Docker Images in Artifact Registry"
     
     # Get current project
     CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null || echo "NOT SET")
     print_status "Project: $CURRENT_PROJECT"
     echo
     
-    # Try different approaches to list images
-    print_status "Attempting to list Docker images..."
+    print_status "Attempting to list Docker images from Artifact Registry..."
     
-    # Method 1: Try with full repository path
-    if gcloud container images list --repository=gcr.io/$CURRENT_PROJECT 2>/dev/null; then
-        print_status "✅ Successfully listed images from Container Registry"
-    else
-        print_status "⚠️  Repository method failed, trying alternative approaches..."
+    # Try Artifact Registry locations
+    FOUND_IMAGES=false
+    for location in "australia-southeast1" "us" "europe-west1" "asia-east1"; do
+        print_status "Checking location: $location"
         
-        # Method 2: Try listing all repositories first
-        print_status "Available repositories:"
-        if gcloud container images list --repository=gcr.io 2>/dev/null | grep "$CURRENT_PROJECT"; then
-            print_status "Found project repositories"
+        # List images in Artifact Registry
+        if gcloud artifacts docker images list gcr.io/$CURRENT_PROJECT/fiverivers-tutoring --location=$location 2>/dev/null; then
+            print_status "✅ Successfully listed images from Artifact Registry (location: $location)"
+            FOUND_IMAGES=true
+            break
         else
-            print_status "No repositories found for project: $CURRENT_PROJECT"
+            print_status "❌ No images found in location: $location"
         fi
-        
-        # Method 3: Try with Artifact Registry (newer GCP service)
-        print_status "Checking Artifact Registry..."
-        if gcloud artifacts repositories list --location=australia-southeast1 2>/dev/null; then
-            print_status "Found Artifact Registry repositories"
+    done
+    
+    # If no images found in Artifact Registry, try Container Registry as fallback
+    if [ "$FOUND_IMAGES" = false ]; then
+        print_status "⚠️  No images found in Artifact Registry, checking Container Registry..."
+        if gcloud container images list --repository=gcr.io/$CURRENT_PROJECT 2>/dev/null; then
+            print_status "✅ Found images in Container Registry (legacy)"
+            FOUND_IMAGES=true
         else
-            print_status "No Artifact Registry repositories found"
+            print_status "❌ No images found in either registry"
         fi
-        
-        # Method 4: Manual gcloud command suggestion
-        echo
-        print_status "Manual commands to try:"
-        echo "  gcloud container images list --repository=gcr.io/$CURRENT_PROJECT"
-        echo "  gcloud container images list --repository=gcr.io"
-        echo "  gcloud artifacts repositories list --location=australia-southeast1"
-        echo "  gcloud artifacts docker images list gcr.io/$CURRENT_PROJECT"
     fi
+    
+    # Show repository information
+    echo
+    print_status "Repository Information:"
+    echo "  Primary: Artifact Registry (recommended)"
+    echo "  Fallback: Container Registry (legacy)"
+    echo "  Project: $CURRENT_PROJECT"
     
     echo
     print_status "Quick actions:"
     echo "  $0 cleanup-images    # Clean up old images"
     echo "  $0 list-images       # Show this list again"
+    echo "  $0 debug-artifacts   # Debug registry issues"
     echo "  gcloud auth list              # Check authentication"
     echo "  gcloud config get-value project # Check current project"
 }

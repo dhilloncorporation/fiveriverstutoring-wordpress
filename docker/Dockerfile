@@ -15,7 +15,11 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
     lsb-release \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Install MySQL client (try multiple package names for compatibility)
 RUN apt-get update && apt-get install -y \
@@ -62,6 +66,10 @@ RUN if [ ! -f "wp-config-sample.php" ]; then \
 
 # Copy custom wp-content directory (themes, plugins, etc.)
 COPY fiverivertutoring_wordpress/wp-content ./wp-content/
+
+# Copy composer.json and install Google API Client
+COPY composer.json ./
+RUN composer install --no-dev --optimize-autoloader
 
 # Copy custom configuration files
 COPY fiverivertutoring_wordpress/config/uploads.ini /usr/local/etc/php/conf.d/uploads.ini

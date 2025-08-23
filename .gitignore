@@ -47,5 +47,11 @@ dist/
 build/
 
 # Docker volumes
-mysql_data/ commands/smtp-security/client_secret_*.json
+mysql_data/
+
+# Composer dependencies (installed in Docker)
+vendor/
+composer.lock
+
+# Google OAuth secrets
 commands/smtp-security/client_secret_*.json
