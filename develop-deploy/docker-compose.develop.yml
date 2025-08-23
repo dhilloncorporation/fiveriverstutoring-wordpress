@@ -8,6 +8,7 @@ services:
       - "8082:80"
     volumes:
       - ../fiverivertutoring_wordpress/wp-content:/var/www/html/wp-content
+      - ../fiverivertutoring_wordpress/vendor:/var/www/html/vendor
       - ../fiverivertutoring_wordpress/config/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
     environment:
       WORDPRESS_DB_HOST: ${WORDPRESS_DB_HOST:-192.168.50.158}
