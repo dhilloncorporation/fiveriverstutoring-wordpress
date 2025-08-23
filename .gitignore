@@ -47,4 +47,4 @@ dist/
 build/
 
 # Docker volumes
-mysql_data/ 
+mysql_data/ commands/smtp-security/client_secret_*.json
