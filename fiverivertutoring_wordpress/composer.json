@@ -1,0 +1,8 @@
+{
+    "name": "fiverivertutoring/wordpress",
+    "description": "WordPress with Gmail API",
+    "type": "project",
+    "require": {
+        "google/apiclient": "^2.18"
+    }
+}
