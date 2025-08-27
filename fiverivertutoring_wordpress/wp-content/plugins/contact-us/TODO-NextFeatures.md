@@ -1,5 +1,30 @@
 # Contact Us Plugin - TODO & Next Features
 
+## 📋 Current Usage
+
+### Shortcode Options
+```php
+[contact_us_form]  // Basic usage with default settings
+[contact_us_form title="Custom Title"]  // Custom title
+[contact_us_form hide_title="true"]  // Hide title completely
+[contact_us_form show_phone="false"]  // Hide phone field
+[contact_us_form show_subject="false"]  // Hide subject field
+[contact_us_form title="Get in Touch" show_phone="true" show_subject="true"]  // Combined options
+```
+
+### Smart Title Detection
+The plugin automatically detects if you're on a contact-related page and hides the form title to avoid duplication:
+- If page title contains "Contact", "Contact Us", "Get in Touch", etc. → Form title is hidden
+- If `hide_title="true"` → Form title is always hidden
+- If custom title is specified → Custom title is always shown
+
+### Example Use Cases
+- **Contact page with main heading**: Use `[contact_us_form hide_title="true"]`
+- **General page**: Use `[contact_us_form]` (title will show if appropriate)
+- **Custom branding**: Use `[contact_us_form title="Reach Out to Us"]`
+
+---
+
 ## 🚀 High Priority Features
 
 ### 1. **Automatic Token Refresh**

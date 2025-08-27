@@ -16,22 +16,15 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     lsb-release \
     git \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install MySQL client (try multiple package names for compatibility)
+# Install MySQL client (use default for now)
 RUN apt-get update && apt-get install -y \
     default-mysql-client \
-    || apt-get install -y mariadb-client \
-    || apt-get install -y mysql-client \
-    || (echo "Installing MySQL client from official repository..." && \
-        wget -O mysql-apt-config.deb https://dev.mysql.com/get/mysql-apt-config_0.8.24-1_all.deb && \
-        apt-get install -y ./mysql-apt-config.deb && \
-        apt-get update && \
-        apt-get install -y mysql-client && \
-        rm mysql-apt-config.deb) \
     && rm -rf /var/lib/apt/lists/*
 
 # Verify MySQL client installation
@@ -67,9 +60,10 @@ RUN if [ ! -f "wp-config-sample.php" ]; then \
 # Copy custom wp-content directory (themes, plugins, etc.)
 COPY fiverivertutoring_wordpress/wp-content ./wp-content/
 
-# Copy composer.json and install Google API Client
-COPY composer.json ./
-RUN composer install --no-dev --optimize-autoloader
+# Copy composer files and install Google API Client
+COPY fiverivertutoring_wordpress/composer.json ./
+COPY fiverivertutoring_wordpress/composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
 
 # Copy custom configuration files
 COPY fiverivertutoring_wordpress/config/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
@@ -79,8 +73,8 @@ RUN chown -R www-data:www-data /var/www/html/wp-content \
     && chmod -R 755 /var/www/html/wp-content
 
 # Copy custom entrypoint script
-COPY docker/entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
 # Create directories for persistent data
 RUN mkdir -p /var/www/html/wp-content/uploads \
@@ -95,5 +89,5 @@ RUN ls -la /var/www/html/ && echo "=== Final contents of /var/www/html/ ==="
 EXPOSE 80
 
 # Use custom entrypoint
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["apache2-foreground"] 
