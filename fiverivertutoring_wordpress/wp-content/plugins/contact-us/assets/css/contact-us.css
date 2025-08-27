@@ -1,18 +1,49 @@
+/* ===== CONTACT US FORM - THEME INHERITANCE VERSION ===== */
+/* This CSS uses theme CSS custom properties for better integration */
+
+/* Prevent page layout shifts */
 .contact-us-form-container {
-    max-width: 600px;
+    max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    background: #e9ecef;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    min-height: 400px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    border: 2px solid var(--wp--preset--color--theme, #00B647);
+    /* Match response container styling */
+    position: relative;
+    z-index: 9999;
+}
+
+/* Ensure form maintains size even without title */
+.contact-us-form {
+    min-height: 350px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+/* Prevent container collapse when title is hidden */
+.contact-us-form-container:has(h3:empty),
+.contact-us-form-container:not(:has(h3)) {
+    padding-top: 30px;
+}
+
+/* Alternative solution for browsers that don't support :has() */
+.contact-us-form-container.no-title {
+    padding-top: 30px;
 }
 
 .contact-us-form-container h3 {
-    text-align: center;
-    color: #333;
+    color: var(--wp--preset--color--primary, #111);
+    font-size: var(--wp--preset--font-size--x-large, 2.25rem);
     margin-bottom: 30px;
-    font-size: 24px;
+    text-align: center;
     font-weight: 600;
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
 .contact-us-form {
@@ -21,79 +52,105 @@
     gap: 20px;
 }
 
+/* Ensure form is visible by default */
+.contact-us-form:not([style*="display: none"]) {
+    display: flex !important;
+}
+
+/* Force form visibility when needed */
+.contact-us-form.force-show {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
 .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
     gap: 20px;
+    margin-bottom: 20px;
 }
 
 @media (max-width: 768px) {
     .form-row {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        gap: 0;
     }
 }
 
 .form-group {
-    display: flex;
-    flex-direction: column;
+    margin-bottom: 20px;
+    flex: 1;
 }
 
 .form-group label {
+    display: block;
     margin-bottom: 8px;
-    font-weight: 500;
-    color: #555;
-    font-size: 14px;
+    font-weight: 600;
+    color: var(--wp--preset--color--primary, #111);
+    font-size: var(--wp--preset--font-size--medium, 1.125rem);
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
 .form-group input,
 .form-group textarea {
-    padding: 12px 16px;
-    border: 2px solid #e1e5e9;
-    border-radius: 6px;
-    font-size: 16px;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    background: #fafbfc;
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid var(--wp--preset--color--table-line, #e1e5e9);
+    border-radius: 8px;
+    font-size: var(--wp--preset--font-size--medium, 1.125rem);
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    background: #ffffff;
+    color: var(--wp--preset--color--primary, #111);
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: #007cba;
-    box-shadow: 0 0 0 3px rgba(0, 124, 186, 0.1);
+    border-color: var(--wp--preset--color--theme, #00B647);
+    box-shadow: 0 0 0 3px rgba(0, 182, 71, 0.1);
     background: #ffffff;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
 }
 
 .form-group input.error,
 .form-group textarea.error {
     border-color: #dc3232;
-    background: #fff5f5;
 }
 
 .validation-error {
     color: #dc3232;
-    font-size: 12px;
-    margin-top: 4px;
-    font-style: italic;
+    font-size: var(--wp--preset--font-size--small, 0.875rem);
+    margin-top: 5px;
+    display: block;
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
 .contact-submit-btn {
-    background: linear-gradient(135deg, #007cba 0%, #005a87 100%);
-    color: white;
+    background: var(--wp--preset--color--theme, #00B647);
+    color: var(--wp--preset--color--base, #ffffff);
     border: none;
-    padding: 14px 28px;
-    border-radius: 6px;
-    font-size: 16px;
-    font-weight: 600;
+    padding: 15px 30px;
+    border-radius: 25px;
+    font-size: var(--wp--preset--font-size--medium, 1.125rem);
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    width: 100%;
+    margin-top: 10px;
+    font-family: var(--wp--preset--font-family--hind, inherit);
+    border: 4px solid var(--wp--preset--color--transparent, transparent);
 }
 
 .contact-submit-btn:hover {
-    background: linear-gradient(135deg, #005a87 0%, #004a6f 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 124, 186, 0.3);
+    background: var(--wp--preset--color--secondary, #00a0d2);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 160, 210, 0.3);
 }
 
 .contact-submit-btn:active {
@@ -102,7 +159,7 @@
 }
 
 .contact-submit-btn:disabled {
-    background: #ccc;
+    background: var(--wp--preset--color--contrast, #595959);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
@@ -114,23 +171,24 @@
     margin-top: 20px;
     text-align: center;
     font-weight: 500;
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
 .contact-form-response.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: var(--wp--preset--color--tertiary, #F6F6F6);
+    color: var(--wp--preset--color--primary, #111);
+    border: 1px solid var(--wp--preset--color--theme, #00B647);
 }
 
 .contact-form-response.error {
-    background: #f8d7da;
+    background: #fff5f5;
     color: #721c24;
-    border: 1px solid #f5c6cb;
+    border: 1px solid #dc3232;
 }
 
 .contact-form-response p {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--wp--preset--font-size--medium, 1.125rem);
 }
 
 /* Loading state */
@@ -145,7 +203,7 @@
     height: 16px;
     margin: auto;
     border: 2px solid transparent;
-    border-top-color: #ffffff;
+    border-top-color: var(--wp--preset--color--base, #ffffff);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     right: 16px;
@@ -168,53 +226,60 @@
     .form-group input,
     .form-group textarea {
         padding: 10px 14px;
-        font-size: 14px;
+        font-size: var(--wp--preset--font-size--small, 0.875rem);
     }
     
     .contact-submit-btn {
         padding: 12px 24px;
-        font-size: 14px;
+        font-size: var(--wp--preset--font-size--small, 0.875rem);
     }
 }
 
-/* Dark mode support */
+/* Dark mode support - inherit from theme */
 @media (prefers-color-scheme: dark) {
     .contact-us-form-container {
-        background: #2d3748;
-        color: #e2e8f0;
+        background: #e9ecef;
+        color: var(--wp--preset--color--primary, #111);
+        border-color: var(--wp--preset--color--theme, #00B647);
     }
     
     .contact-us-form-container h3 {
-        color: #e2e8f0;
+        color: var(--wp--preset--color--primary, #111);
     }
     
     .form-group label {
-        color: #cbd5e0;
+        color: var(--wp--preset--color--primary, #111);
     }
     
     .form-group input,
     .form-group textarea {
-        background: #4a5568;
-        border-color: #718096;
-        color: #e2e8f0;
+        background: #ffffff;
+        border-color: #e1e5e9;
+        color: var(--wp--preset--color--primary, #111);
     }
     
     .form-group input:focus,
     .form-group textarea:focus {
-        background: #2d3748;
-        border-color: #007cba;
+        background: #ffffff;
+        border-color: var(--wp--preset--color--theme, #00B647);
     }
 }
 
-/* Success Message Styling */
+/* Success Message Styling - Theme Integrated */
 .contact-success-message {
     text-align: center;
     padding: 30px;
-    background: white;
+    background: #e9ecef;
     border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    margin: 20px 0;
-    border: 2px solid #e9ecef;
+    color: var(--wp--preset--color--primary, #111);
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    position: relative;
+    z-index: 10000;
+    min-height: 300px;
+    border: 2px solid var(--wp--preset--color--theme, #00B647);
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
 .success-icon {
@@ -224,148 +289,100 @@
 }
 
 .contact-success-message h3 {
-    color: #20c997;
-    font-size: 2em;
+    color: var(--wp--preset--color--theme, #00B647);
+    font-size: var(--wp--preset--font-size--x-large, 2.25rem);
     margin-bottom: 15px;
     font-weight: 600;
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
 .contact-success-message p {
-    color: #495057;
-    font-size: 1.1em;
+    color: var(--wp--preset--color--contrast, #595959);
+    font-size: var(--wp--preset--font-size--medium, 1.125rem);
     margin-bottom: 25px;
     line-height: 1.6;
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
-/* Social Media Section */
+/* Social Media Section - Theme Colors */
 .social-follow-section {
-    background: #f8f9fa;
+    background: #ffffff;
     padding: 25px;
     border-radius: 12px;
     margin: 25px 0;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    border: 1px solid #e9ecef;
+    display: block;
+    visibility: visible;
+    border: 1px solid var(--wp--preset--color--table-line, rgba(0,0,0,0.1));
 }
 
 .social-follow-section h4 {
-    color: #20c997;
-    font-size: 1.3em;
+    color: var(--wp--preset--color--primary, #111);
+    font-size: var(--wp--preset--font-size--large, 1.75rem);
     margin-bottom: 15px;
     font-weight: 600;
-}
-
-.social-hint {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    border: 2px dashed #20c997;
-    margin: 20px 0;
-}
-
-.social-hint-icon {
-    font-size: 2em;
-    flex-shrink: 0;
-}
-
-.social-hint p {
-    color: #495057;
-    font-weight: 500;
-    margin: 0;
-    font-size: 1.1em;
-}
-
-.social-hint p:first-of-type {
-    font-size: 1.3em;
-    font-weight: 600;
-    margin-bottom: 10px;
-    color: #20c997;
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
 .social-note {
-    font-size: 0.9em !important;
+    font-size: var(--wp--preset--font-size--small, 0.875rem) !important;
     font-weight: 400 !important;
-    color: #6c757d !important;
+    color: var(--wp--preset--color--contrast, #595959) !important;
     font-style: italic;
     margin-top: 8px !important;
+    text-align: center;
 }
 
-/* Newsletter Section */
-.newsletter-signup {
-    margin: 25px 0;
-    padding: 20px;
-    background: white;
-    border-radius: 10px;
-    border: 2px dashed #20c997;
-}
-
-.newsletter-signup p {
-    color: #20c997;
-    margin-bottom: 15px;
-    font-weight: 500;
-}
-
-.newsletter-btn {
-    background: #20c997;
-    color: white;
-    border: none;
-    padding: 12px 25px;
-    border-radius: 25px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(32,201,151,0.3);
-}
-
-.newsletter-btn:hover {
-    background: #1ba085;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(32,201,151,0.4);
-}
-
-/* Action Buttons */
+/* Action Buttons - Theme Integrated */
 .action-buttons {
     display: flex;
     justify-content: center;
     gap: 15px;
     margin-top: 25px;
     flex-wrap: wrap;
+    visibility: visible;
 }
 
-.reset-form-btn, .close-message-btn {
+.reset-form-btn, .close-message-btn, .ok-btn {
     padding: 12px 25px;
     border-radius: 25px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
     border: none;
-    font-size: 0.95em;
+    font-size: var(--wp--preset--font-size--small, 0.875rem);
+    display: inline-block;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    font-family: var(--wp--preset--font-family--hind, inherit);
 }
 
 .reset-form-btn {
-    background: #20c997;
-    color: white;
-    box-shadow: 0 4px 15px rgba(32,201,151,0.3);
+    background: var(--wp--preset--color--theme, #00B647);
+    color: var(--wp--preset--color--base, #ffffff);
 }
 
 .reset-form-btn:hover {
-    background: #1ba085;
+    background: var(--wp--preset--color--secondary, #00a0d2);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(32,201,151,0.4);
 }
 
 .close-message-btn {
-    background: #6c757d;
-    color: white;
-    box-shadow: 0 4px 15px rgba(108,117,125,0.3);
+    background: var(--wp--preset--color--contrast, #595959);
+    color: var(--wp--preset--color--base, #ffffff);
 }
 
 .close-message-btn:hover {
-    background: #5a6268;
+    background: var(--wp--preset--color--primary, #111);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(108,117,125,0.4);
+}
+
+.ok-btn {
+    background: var(--wp--preset--color--contrast, #595959);
+    color: var(--wp--preset--color--base, #ffffff);
+}
+
+.ok-btn:hover {
+    background: var(--wp--preset--color--primary, #111);
+    transform: translateY(-2px);
 }
 
 /* Animations */
@@ -381,26 +398,744 @@
     }
 }
 
-/* Responsive Design */
+/* Responsive Design - Mobile First Approach */
 @media (max-width: 768px) {
-    .social-buttons {
-        flex-direction: column;
-        align-items: center;
+    .contact-us-form-container {
+        max-width: 95%;
+        margin: 10px auto;
+        padding: 20px;
+        min-height: auto;
     }
     
-    .social-btn {
+    .contact-us-form-container h3 {
+        font-size: var(--wp--preset--font-size--large, 1.75rem);
+        margin-bottom: 20px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        font-size: var(--wp--preset--font-size--small, 0.875rem);
+        margin-bottom: 6px;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+        padding: 14px 16px;
+        font-size: 16px; /* Prevents zoom on iOS */
+        border-radius: 8px;
+    }
+    
+    .contact-submit-btn {
         width: 100%;
-        max-width: 250px;
-        justify-content: center;
+        padding: 16px 24px;
+        font-size: 16px;
+        border-radius: 8px;
+    }
+    
+    /* Success Message Mobile Optimization */
+    .contact-success-message {
+        padding: 20px;
+        margin: 15px 0;
+    }
+    
+    .success-icon {
+        font-size: 3em;
+        margin-bottom: 15px;
+    }
+    
+    .contact-success-message h3 {
+        font-size: var(--wp--preset--font-size--large, 1.75rem);
+        margin-bottom: 12px;
+    }
+    
+    .contact-success-message p {
+        font-size: var(--wp--preset--font-size--medium, 1.125rem);
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+    
+    /* Social Section Mobile */
+    .social-follow-section {
+        padding: 20px;
+        margin: 20px 0;
+    }
+    
+
+    
+
+    
+    /* Action Buttons Mobile */
+    .action-buttons {
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 20px;
+    }
+    
+    .reset-form-btn, .ok-btn {
+        width: 100%;
+        max-width: none;
+        padding: 14px 20px;
+        font-size: var(--wp--preset--font-size--small, 0.875rem);
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .contact-us-form-container {
+        max-width: 98%;
+        margin: 5px auto;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    .contact-us-form-container h3 {
+        font-size: var(--wp--preset--font-size--medium, 1.125rem);
+        margin-bottom: 15px;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+        padding: 12px 14px;
+        font-size: 16px;
+    }
+    
+    .contact-submit-btn {
+        padding: 14px 20px;
+        font-size: var(--wp--preset--font-size--small, 0.875rem);
+    }
+    
+    /* Success Message Small Mobile */
+    .contact-success-message {
+        padding: 15px;
+        margin: 10px 0;
+    }
+    
+    .success-icon {
+        font-size: 2.5em;
+        margin-bottom: 12px;
+    }
+    
+    .contact-success-message h3 {
+        font-size: var(--wp--preset--font-size--medium, 1.125rem);
+        margin-bottom: 10px;
+    }
+    
+    .contact-success-message p {
+        font-size: var(--wp--preset--font-size--small, 0.875rem);
+        margin-bottom: 15px;
+    }
+    
+    /* Social Section Small Mobile */
+    .social-follow-section {
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .social-follow-section h4 {
+        font-size: var(--wp--preset--font-size--medium, 1.125rem);
+        margin-bottom: 12px;
+    }
+    
+    
+    
+    
+    
+    
+    
+    /* Action Buttons Small Mobile */
+    .action-buttons {
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .reset-form-btn, .ok-btn {
+        padding: 12px 18px;
+        font-size: var(--wp--preset--font-size--small, 0.875rem);
+    }
+}
+
+/* Tablet Optimization */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .contact-us-form-container {
+        max-width: 90%;
+        padding: 25px;
+    }
+    
+    .form-row {
+        gap: 25px;
+    }
+    
+    .contact-success-message {
+        padding: 25px;
     }
     
     .action-buttons {
-        flex-direction: column;
-        align-items: center;
+        gap: 20px;
+    }
+}
+
+/* Large Screen Optimization */
+@media (min-width: 1025px) {
+    .contact-us-form-container {
+        max-width: 900px;
+        padding: 40px;
     }
     
-    .reset-form-btn, .close-message-btn {
+    .form-row {
+        gap: 30px;
+    }
+    
+    .contact-success-message {
+        padding: 35px;
+    }
+    
+    .action-buttons {
+        gap: 25px;
+    }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .contact-submit-btn:hover,
+    .reset-form-btn:hover,
+    .ok-btn:hover {
+        transform: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+        box-shadow: 0 0 0 3px rgba(0, 182, 71, 0.2);
+    }
+}
+
+/* Landscape Mobile Optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+    .contact-us-form-container {
+        padding: 15px;
+        min-height: auto;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    
+    .contact-success-message {
+        padding: 20px;
+    }
+    
+    .action-buttons {
+        flex-direction: row;
+        justify-content: center;
+        gap: 15px;
+    }
+    
+    .reset-form-btn, .ok-btn {
+        width: auto;
+        min-width: 120px;
+    }
+}
+
+/* ===== CONTACT FORM RESPONSE & SUCCESS MESSAGE ===== */
+/* These styles ensure the success message is always visible */
+
+#contact-form-response {
+    margin: 20px 0;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    background: #e9ecef;
+    border: 2px solid var(--wp--preset--color--theme, #00B647);
+    color: var(--wp--preset--color--primary, #111);
+    position: relative;
+    z-index: 9999;
+    min-height: 200px;
+    box-sizing: border-box;
+    /* Ensure it's visible by default */
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    /* Position it properly when form is hidden */
+    width: 100%;
+    max-width: 100%;
+    font-family: var(--wp--preset--font-family--hind, inherit);
+}
+
+/* When form is hidden, ensure response container takes full width */
+.contact-us-form-container:has(#contact-us-form[style*="display: none"]) #contact-form-response,
+.contact-us-form-container:has(#contact-us-form[style*="display: none"]) #contact-form-response {
+    margin: 0;
+    padding: 30px;
+    min-height: 400px;
+}
+
+/* Alternative for browsers that don't support :has() */
+.contact-us-form-container #contact-us-form[style*="display: none"] + #contact-form-response {
+    margin: 0;
+    padding: 30px;
+    min-height: 400px;
+}
+
+/* Force visibility for success state */
+#contact-form-response.success {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: #e9ecef !important;
+    border: 3px solid var(--wp--preset--color--theme, #00B647) !important;
+    z-index: 9999 !important;
+    position: relative !important;
+    box-shadow: 0 15px 40px rgba(0, 182, 71, 0.3) !important;
+}
+
+/* Force visibility for error state */
+#contact-form-response.error {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: #fff5f5 !important;
+    border: 3px solid #dc3232 !important;
+    color: #721c24 !important;
+    box-shadow: 0 15px 40px rgba(220, 50, 50, 0.3) !important;
+}
+
+/* ===== VALIDATION STYLES ===== */
+
+.validation-error {
+    color: #dc3232;
+    font-size: var(--wp--preset--font-size--small, 0.875rem);
+    margin-top: 5px;
+    display: block;
+    font-family: var(--wp--preset--font-family--hind, inherit);
+}
+
+.form-group input.error,
+.form-group textarea.error {
+    border-color: #dc3232;
+}
+
+/* ===== LOADING STATES ===== */
+
+.contact-submit-btn:disabled {
+    opacity: 0.7;
+}
+
+/* ===== ACCESSIBILITY ===== */
+
+.contact-submit-btn:focus,
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: 2px solid var(--wp--preset--color--theme, #00B647);
+    outline-offset: 2px;
+}
+
+/* ===== PRINT STYLES ===== */
+
+@media print {
+    .contact-us-form-container {
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .contact-submit-btn,
+    .action-buttons {
+        display: none;
+    }
+}
+
+/* ===== THEME INTEGRATION ENHANCEMENTS ===== */
+
+/* Use theme's button styling */
+.contact-submit-btn {
+    border-radius: var(--wp--preset--spacing--4, 4px);
+    font-weight: var(--wp--preset--typography--font-weight, 700);
+    font-size: var(--wp--preset--font-size--small, 0.875rem);
+}
+
+/* Inherit theme's link styling */
+.contact-success-message a,
+.social-follow-section a {
+    color: var(--wp--preset--color--contrast, #595959);
+    text-decoration: none;
+}
+
+.contact-success-message a:hover,
+.social-follow-section a:hover {
+    color: var(--wp--preset--color--contrast, #595959);
+    text-decoration: underline;
+}
+
+/* Use theme's spacing units where available */
+.contact-us-form-container {
+    padding: var(--wp--preset--spacing--30, 30px);
+}
+
+.form-group {
+    margin-bottom: var(--wp--preset--spacing--20, 20px);
+}
+
+/* Theme-aware focus states */
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: var(--wp--preset--color--theme, #00B647);
+    box-shadow: 0 0 0 3px rgba(0, 182, 71, 0.1);
+}
+
+/* Ensure buttons follow theme button patterns */
+.contact-submit-btn,
+.reset-form-btn,
+.ok-btn {
+    border-radius: var(--wp--preset--spacing--4, 4px);
+    font-weight: var(--wp--preset--typography--font-weight, 700);
+    font-size: var(--wp--preset--font-size--small, 0.875rem);
+    font-family: var(--wp--preset--font-family--hind, inherit);
+}
+
+/* ===== THEME INHERITANCE DISABLED STYLING ===== */
+/* When theme_inherit="false" is used, these styles provide the original design */
+
+.contact-us-form-container.no-theme-inherit {
+    background: #e9ecef !important;
+    border: 1px solid #e1e5e9 !important;
+    color: #333 !important;
+}
+
+.contact-us-form-container.no-theme-inherit h3 {
+    color: #333 !important;
+    font-size: 2em !important;
+    font-family: inherit !important;
+}
+
+.contact-us-form-container.no-theme-inherit .form-group label {
+    color: #333 !important;
+    font-size: 0.95em !important;
+    font-family: inherit !important;
+}
+
+.contact-us-form-container.no-theme-inherit .form-group input,
+.contact-us-form-container.no-theme-inherit .form-group textarea {
+    background: #ffffff !important;
+    color: #333 !important;
+    border-color: #e1e5e9 !important;
+    font-size: 1em !important;
+    font-family: inherit !important;
+}
+
+.contact-us-form-container.no-theme-inherit .form-group input:focus,
+.contact-us-form-container.no-theme-inherit .form-group textarea:focus {
+    border-color: #20c997 !important;
+    box-shadow: 0 0 0 3px rgba(32, 201, 151, 0.1) !important;
+}
+
+.contact-us-form-container.no-theme-inherit .contact-submit-btn {
+    background: #20c997 !important;
+    color: #ffffff !important;
+    font-size: 1.1em !important;
+    font-weight: 600 !important;
+    font-family: inherit !important;
+    border-radius: 25px !important;
+}
+
+.contact-us-form-container.no-theme-inherit .contact-submit-btn:hover {
+    background: #1ba085 !important;
+}
+
+.contact-us-form-container.no-theme-inherit .contact-submit-btn:disabled {
+    background: #6c757d !important;
+}
+
+.contact-us-form-container.no-theme-inherit .contact-form-response.success {
+    background: #d4edda !important;
+    color: #155724 !important;
+    border-color: #c3e6cb !important;
+}
+
+.contact-us-form-container.no-theme-inherit .contact-success-message {
+    background: #ffffff !important;
+    color: #333 !important;
+    border-color: #20c997 !important;
+    font-family: inherit !important;
+}
+
+.contact-us-form-container.no-theme-inherit .contact-success-message h3 {
+    color: #20c997 !important;
+    font-size: 2em !important;
+    font-family: inherit !important;
+}
+
+.contact-us-form-container.no-theme-inherit .contact-success-message p {
+    color: #495057 !important;
+    font-size: 1.1em !important;
+    font-family: inherit !important;
+}
+
+.contact-us-form-container.no-theme-inherit .social-follow-section {
+    background: #e9ecef !important;
+    border-color: #dee2e6 !important;
+}
+
+.contact-us-form-container.no-theme-inherit .social-follow-section h4 {
+    color: #495057 !important;
+    font-size: 1.3em !important;
+    font-family: inherit !important;
+}
+
+
+
+
+
+.contact-us-form-container.no-theme-inherit .reset-form-btn {
+    background: #20c997 !important;
+    color: #ffffff !important;
+    font-family: inherit !important;
+}
+
+.contact-us-form-container.no-theme-inherit .reset-form-btn:hover {
+    background: #1ba085 !important;
+}
+
+.contact-us-form-container.no-theme-inherit .ok-btn {
+    background: #6c757d !important;
+    color: #ffffff !important;
+    font-family: inherit !important;
+}
+
+.contact-us-form-container.no-theme-inherit .ok-btn:hover {
+    background: #5a6268 !important;
+}
+
+.contact-us-form-container.no-theme-inherit .close-message-btn {
+    background: #6c757d !important;
+    color: #ffffff !important;
+    font-family: inherit !important;
+}
+
+.contact-us-form-container.no-theme-inherit .close-message-btn:hover {
+    background: #5a6268 !important;
+}
+
+/* ===== RESPONSIVE THEME INHERITANCE ===== */
+/* Ensure theme inheritance works across all screen sizes */
+
+@media (max-width: 768px) {
+    .contact-us-form-container.theme-inherit {
+        /* Maintain theme inheritance on mobile */
+        background: var(--wp--preset--color--base, #ffffff);
+        color: var(--wp--preset--color--primary, #111);
+    }
+    
+    .contact-us-form-container.theme-inherit h3 {
+        font-size: var(--wp--preset--font-size--large, 1.75rem);
+        color: var(--wp--preset--color--primary, #111);
+    }
+    
+    .contact-us-form-container.theme-inherit .form-group label {
+        font-size: var(--wp--preset--font-size--small, 0.875rem);
+        color: var(--wp--preset--color--primary, #111);
+    }
+}
+
+/* ===== ACCESSIBILITY ENHANCEMENTS ===== */
+/* Ensure proper contrast ratios regardless of theme inheritance */
+
+.contact-us-form-container.theme-inherit .form-group input:focus,
+.contact-us-form-container.theme-inherit .form-group textarea:focus {
+    outline: 2px solid var(--wp--preset--color--theme, #00B647);
+    outline-offset: 2px;
+}
+
+.contact-us-form-container.no-theme-inherit .form-group input:focus,
+.contact-us-form-container.no-theme-inherit .form-group textarea:focus {
+    outline: 2px solid #20c997;
+    outline-offset: 2px;
+}
+
+/* ===== PRINT STYLES - THEME AWARE ===== */
+
+@media print {
+    .contact-us-form-container.theme-inherit {
+        background: var(--wp--preset--color--base, #ffffff) !important;
+        color: var(--wp--preset--color--primary, #111) !important;
+        border: 1px solid var(--wp--preset--color--table-line, #ccc) !important;
+    }
+    
+    .contact-us-form-container.no-theme-inherit {
+        background: #ffffff !important;
+        color: #333 !important;
+        border: 1px solid #ccc !important;
+    }
+    
+    .contact-submit-btn,
+.action-buttons {
+        display: none;
+    }
+}
+
+/* Social Media Links */
+.social-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin: 25px 0;
+}
+
+.social-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: 2px solid transparent;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: var(--wp--preset--font-size--medium, 1.125rem);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.social-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    text-decoration: none;
+}
+
+.social-link svg {
+    width: 20px;
+    height: 20px;
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+.social-link:hover svg {
+    transform: scale(1.1);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.social-link span {
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+/* Facebook specific styling */
+.social-link.facebook {
+    background: #1877f2;
+    border-color: #1877f2;
+    color: white;
+}
+
+.social-link.facebook svg {
+    fill: white;
+}
+
+.social-link.facebook span {
+    color: white;
+}
+
+.social-link.facebook:hover {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* Instagram specific styling */
+.social-link.instagram {
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    border-color: #dc2743;
+    color: white;
+}
+
+.social-link.instagram svg {
+    fill: white;
+}
+
+.social-link.instagram span {
+    color: white;
+}
+
+.social-link.instagram:hover {
+    background: linear-gradient(45deg, #e67e22 0%, #d35400 25%, #c0392b 50%, #a93226 75%, #922b21 100%);
+    border-color: #c0392b;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* Google specific styling */
+.social-link.google {
+    background: #4285f4;
+    border-color: #4285f4;
+    color: white;
+}
+
+.social-link.google svg {
+    fill: white;
+}
+
+.social-link.google span {
+    color: white;
+}
+
+.social-link.google:hover {
+    background: #3367d6;
+    border-color: #3367d6;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* Email specific styling */
+.social-link.email {
+    background: var(--wp--preset--color--theme, #00B647);
+    border-color: var(--wp--preset--color--theme, #00B647);
+    color: white;
+}
+
+.social-link.email svg {
+    fill: white;
+}
+
+.social-link.email span {
+    color: white;
+}
+
+.social-link.email:hover {
+    background: #009a3d;
+    border-color: #009a3d;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* Dark mode support for social links */
+@media (prefers-color-scheme: dark) {
+    .social-link {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    .social-link:hover {
+        box-shadow: 0 4px 15px rgba(255,255,255,0.1);
+    }
+    
+    .social-link:hover svg {
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+}
+
+/* Responsive design for social links */
+@media (max-width: 768px) {
+    .social-links {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .social-link {
         width: 100%;
-        max-width: 200px;
+        max-width: 280px;
+        justify-content: center;
     }
 }
