@@ -96,16 +96,154 @@ reset_db() {
 }
 
 verify_db() {
-    echo "Verifying staging database..."
+    echo "🔍 Verifying staging database..."
     
     # First, try to set up the database using the script
     echo "Setting up database structure..."
     mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" < "$BASIC_SETUP" >/dev/null 2>&1 || echo "Database setup completed or user already exists"
     
-    # Now verify the database
+    # Check if database exists
+    if ! mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "USE $WORDPRESS_DB_NAME;" >/dev/null 2>&1; then
+        echo "❌ Database '$WORDPRESS_DB_NAME' does not exist!"
+        echo "💡 Run: $0 copy-develop"
+        return 1
+    fi
+    
     echo ""
-    echo "Database verification results:"
-    mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "USE $WORDPRESS_DB_NAME; SELECT 'Database exists' as status; SHOW TABLES; SELECT COUNT(*) as total_posts FROM wp_posts; SELECT COUNT(*) as total_users FROM wp_users; SELECT option_value as site_url FROM wp_options WHERE option_name = 'siteurl'; SELECT option_value as blog_name FROM wp_options WHERE option_name = 'blogname';" 2>/dev/null || echo "Database verification failed - may need to create database first"
+    echo "📊 Database Structure Verification:"
+    echo "=================================="
+    
+    # Basic database info
+    mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "
+    USE $WORDPRESS_DB_NAME;
+    SELECT 'Database exists and accessible' as status;
+    SELECT COUNT(*) as total_tables FROM information_schema.tables WHERE table_schema = '$WORDPRESS_DB_NAME';
+    SELECT COUNT(*) as total_posts FROM wp_posts;
+    SELECT COUNT(*) as total_users FROM wp_users;
+    SELECT COUNT(*) as total_pages FROM wp_posts WHERE post_type = 'page';
+    " 2>/dev/null || { echo "❌ Database verification failed"; return 1; }
+    
+    echo ""
+    echo "🌐 WordPress URL Configuration:"
+    echo "=============================="
+    
+    # Check WordPress URLs
+    mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "
+    USE $WORDPRESS_DB_NAME;
+    SELECT 
+        CASE 
+            WHEN option_name = 'home' THEN '🏠 Home URL'
+            WHEN option_name = 'siteurl' THEN '🌍 Site URL'
+            WHEN option_name = 'blogname' THEN '📝 Blog Name'
+            WHEN option_name = 'admin_email' THEN '📧 Admin Email'
+        END as setting,
+        option_value as value
+    FROM wp_options 
+    WHERE option_name IN ('home', 'siteurl', 'blogname', 'admin_email');
+    " 2>/dev/null
+    
+    echo ""
+    echo "🔍 URL Analysis (Development vs Staging):"
+    echo "========================================"
+    
+    # Check for development URLs in content
+    mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "
+    USE $WORDPRESS_DB_NAME;
+    SELECT 
+        'WordPress Options' as location,
+        COUNT(*) as dev_urls_found
+    FROM wp_options 
+    WHERE option_value LIKE '%localhost:8082%' 
+       OR option_value LIKE '%http://localhost:8082%';
+    
+    SELECT 
+        'Post Content' as location,
+        COUNT(*) as dev_urls_found
+    FROM wp_posts 
+    WHERE post_content LIKE '%localhost:8082%' 
+       OR post_content LIKE '%http://localhost:8082%';
+    
+    SELECT 
+        'Post GUIDs' as location,
+        COUNT(*) as dev_urls_found
+    FROM wp_posts 
+    WHERE guid LIKE '%localhost:8082%' 
+       OR guid LIKE '%http://localhost:8082%';
+    
+    SELECT 
+        'Post Meta' as location,
+        COUNT(*) as dev_urls_found
+    FROM wp_postmeta 
+    WHERE meta_value LIKE '%localhost:8082%' 
+       OR meta_value LIKE '%http://localhost:8082%';
+    " 2>/dev/null
+    
+    echo ""
+    echo "📄 Sample Content Verification:"
+    echo "=============================="
+    
+    # Show sample posts with URLs
+    mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "
+    USE $WORDPRESS_DB_NAME;
+    SELECT 
+        ID,
+        LEFT(post_title, 30) as title,
+        post_type,
+        LEFT(guid, 50) as guid_url
+    FROM wp_posts 
+    WHERE post_status = 'publish' 
+    ORDER BY post_date DESC 
+    LIMIT 5;
+    " 2>/dev/null
+    
+    echo ""
+    echo "⚠️  Development URLs Still Present:"
+    echo "=================================="
+    
+    # Show specific development URLs that need attention
+    mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "
+    USE $WORDPRESS_DB_NAME;
+    (SELECT 
+        'OPTIONS' as table_name,
+        option_name as location,
+        LEFT(option_value, 60) as problematic_url
+    FROM wp_options 
+    WHERE option_value LIKE '%localhost:8082%' 
+    LIMIT 3)
+    UNION ALL
+    (SELECT 
+        'POSTS' as table_name,
+        CONCAT('Post ID: ', ID) as location,
+        LEFT(guid, 60) as problematic_url
+    FROM wp_posts 
+    WHERE guid LIKE '%localhost:8082%' 
+    LIMIT 3);
+    " 2>/dev/null
+    
+    echo ""
+    echo "✅ Verification Summary:"
+    echo "======================"
+    
+    # Count issues
+    dev_url_count=$(mysql -h "$WORDPRESS_DB_HOST" -u "$WORDPRESS_DB_USER" -p"$WORDPRESS_DB_PASSWORD" -e "
+    USE $WORDPRESS_DB_NAME;
+    SELECT (
+        (SELECT COUNT(*) FROM wp_options WHERE option_value LIKE '%localhost:8082%') +
+        (SELECT COUNT(*) FROM wp_posts WHERE post_content LIKE '%localhost:8082%' OR guid LIKE '%localhost:8082%') +
+        (SELECT COUNT(*) FROM wp_postmeta WHERE meta_value LIKE '%localhost:8082%')
+    ) as total;
+    " 2>/dev/null | tail -1)
+    
+    if [ "$dev_url_count" -gt 0 ]; then
+        echo "⚠️  Found $dev_url_count development URLs that need conversion"
+        echo "💡 Run the staging container to auto-convert URLs:"
+        echo "   cd .. && ./staging-commands.sh restart"
+    else
+        echo "✅ No development URLs found - staging is properly configured!"
+    fi
+    
+    echo ""
+    echo "🚀 Staging Status: Ready for testing at http://localhost:8083"
 }
 
 backup_db() {
@@ -152,9 +290,11 @@ show_workflow() {
 echo "🗄️ Five Rivers Tutoring - Staging Database Setup"
 echo "================================================"
 
-# Database configuration - Load from env.staging
-if [ -f "../env.staging" ]; then
-    source "../env.staging"
+# Database configuration - Load from properties file
+PROPERTIES_FILE="../fiverivertutoring-wordpress-staging.properties"
+if [ -f "$PROPERTIES_FILE" ]; then
+    echo "📄 Loading configuration from $PROPERTIES_FILE"
+    source "$PROPERTIES_FILE"
     
     # Use WORDPRESS_DB_* variables for consistency with Docker container
     # Fallback to DB_* variables if WORDPRESS_DB_* are not set
@@ -164,8 +304,15 @@ if [ -f "../env.staging" ]; then
     WORDPRESS_DB_NAME="${WORDPRESS_DB_NAME:-$STAGING_DB}"
     DEVELOP_DB="${DEVELOP_DB:-fiveriverstutoring_db}"
     PRODUCTION_DB="${PRODUCTION_DB:-fiveriverstutoring_prod_db}"
+    
+    echo "🔧 Database configuration loaded:"
+    echo "   Host: $WORDPRESS_DB_HOST"
+    echo "   User: $WORDPRESS_DB_USER"
+    echo "   Staging DB: $WORDPRESS_DB_NAME"
+    echo "   Develop DB: $DEVELOP_DB"
 else
-    echo "❌ env.staging file not found!"
+    echo "❌ Properties file not found: $PROPERTIES_FILE"
+    echo "💡 Make sure you're running from staging-deploy/db-scripts/"
     exit 1
 fi
 

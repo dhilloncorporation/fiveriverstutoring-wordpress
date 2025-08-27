@@ -196,61 +196,174 @@ update_urls() {
     if [ ! -z "${WORDPRESS_HOME:-}" ] && [ ! -z "${WORDPRESS_SITEURL:-}" ]; then
         echo "🔍 Checking if URLs need updating..."
         
-        # Check if URLs need updating (look for development URLs in content)
-        echo "🔍 Checking for development URLs that need conversion..."
+        # Detect environment and set up URL conversion patterns
+        ENVIRONMENT="${WP_ENVIRONMENT_TYPE:-development}"
+        TARGET_URL="$WORDPRESS_HOME"
         
+        echo "🌐 Environment: $ENVIRONMENT"
+        echo "🎯 Target URL: $TARGET_URL"
         
+        # Get current WordPress URLs to check if update is needed
+        CURRENT_HOME=$(wp option get home --allow-root 2>/dev/null || echo "")
+        CURRENT_SITEURL=$(wp option get siteurl --allow-root 2>/dev/null || echo "")
         
-        # Check if there are any URLs that need conversion (look for non-staging URLs)
-        STAGING_DOMAIN=$(echo "$WORDPRESS_HOME" | sed 's|https\?://||' | sed 's|/.*||')
-        DEV_URLS_COUNT=$(wp db query "SELECT COUNT(*) FROM wp_posts WHERE guid NOT LIKE '%$STAGING_DOMAIN%'" --allow-root | grep -v "COUNT" | tr -d ' ' || echo "0")
+        echo "🔍 Current Home URL: $CURRENT_HOME"
+        echo "🔍 Current Site URL: $CURRENT_SITEURL"
         
-        if [ "$DEV_URLS_COUNT" = "0" ]; then
-            echo "✅ No development URLs found, skipping update"
+        # Check for development URLs in database content (more reliable check)
+        DEV_URL_COUNT=0
+        
+        # Define source URLs to check based on environment
+        declare -a CHECK_URLS=()
+        case "$ENVIRONMENT" in
+            "staging")
+                CHECK_URLS+=("${WORDPRESS_DEV_URL:-http://localhost:8082}")
+                CHECK_URLS+=("http://localhost:8082")
+                ;;
+            "production")
+                CHECK_URLS+=("${WORDPRESS_DEV_URL:-http://localhost:8082}")
+                CHECK_URLS+=("http://localhost:8082")
+                CHECK_URLS+=("${STAGING_URL:-http://localhost:8083}")
+                CHECK_URLS+=("http://localhost:8083")
+                ;;
+            *)
+                CHECK_URLS+=("${PRODUCTION_URL:-https://yourdomain.com}")
+                CHECK_URLS+=("${STAGING_URL:-http://localhost:8083}")
+                ;;
+        esac
+        
+        # Count development URLs in database content using wp search-replace dry-run
+        for check_url in "${CHECK_URLS[@]}"; do
+            if [ ! -z "$check_url" ] && [ "$check_url" != "$TARGET_URL" ]; then
+                echo "🔍 Checking for URLs: $check_url"
+                
+                # Use wp search-replace dry-run to get accurate count
+                replacement_output=$(wp search-replace "$check_url" "$TARGET_URL" --allow-root --dry-run 2>/dev/null || echo "0 replacements")
+                
+                # Extract number from "Made X replacements" or "X replacements"
+                url_count=$(echo "$replacement_output" | grep -o '[0-9]\+ replacements' | head -1 | grep -o '[0-9]\+' || echo "0")
+                
+                # Fallback: try simple database check if wp search-replace fails
+                if [ "$url_count" = "0" ]; then
+                    # Simple test - check if URL exists in database at all
+                    db_test=$(wp db query "SELECT COUNT(*) as count FROM wp_options WHERE option_value LIKE '%${check_url}%' LIMIT 1;" --allow-root 2>/dev/null | tail -1 | tr -d ' ' || echo "0")
+                    if [ "$db_test" != "0" ] && [ "$db_test" != "count" ]; then
+                        url_count="$db_test"
+                        echo "🔍 Fallback database check found $db_test URLs"
+                    fi
+                fi
+                
+                DEV_URL_COUNT=$((DEV_URL_COUNT + url_count))
+                
+                if [ "$url_count" -gt 0 ]; then
+                    echo "🔍 Found $url_count instances of $check_url that need conversion"
+                else
+                    echo "🔍 No instances of $check_url found"
+                fi
+                
+                # Debug output
+                echo "🔧 Debug - wp search-replace output: $replacement_output"
+                echo "🔧 Debug - extracted count: $url_count"
+                echo "🔧 Debug - running total: $DEV_URL_COUNT"
+            fi
+        done
+        
+        # Check if URLs are already correct AND no development URLs in content
+        if [ "$CURRENT_HOME" = "$WORDPRESS_HOME" ] && [ "$CURRENT_SITEURL" = "$WORDPRESS_SITEURL" ] && [ "$DEV_URL_COUNT" -eq 0 ]; then
+            echo "✅ WordPress URLs and database content already correct, skipping update"
             return 0
         fi
         
-        echo "🔍 Found $DEV_URLS_COUNT development URLs that need conversion"
+        if [ "$DEV_URL_COUNT" -gt 0 ]; then
+            echo "🔄 Found $DEV_URL_COUNT development URLs in database content - conversion needed"
+        fi
+        if [ "$CURRENT_HOME" != "$WORDPRESS_HOME" ] || [ "$CURRENT_SITEURL" != "$WORDPRESS_SITEURL" ]; then
+            echo "🔄 WordPress options need updating - conversion needed"
+        fi
         
-        echo "🔄 Updating WordPress URLs..."
+        echo "🔄 URLs need updating - starting conversion process..."
         
-        # Comprehensive URL replacement for staging environment
-        echo "Replacing ALL development URLs with staging URLs..."
+        # Define source URLs to replace based on environment
+        declare -a SOURCE_URLS=()
         
-        # Replace development URLs with staging URL
-        echo "Replacing development URLs with staging URLs..."
+        case "$ENVIRONMENT" in
+            "staging")
+                # Staging: Replace development URLs
+                SOURCE_URLS+=("${WORDPRESS_DEV_URL:-http://localhost:8082}")
+                SOURCE_URLS+=("http://localhost:8082")
+                echo "📝 Staging environment: Converting development URLs to staging"
+                ;;
+            "production")
+                # Production: Replace both development and staging URLs
+                SOURCE_URLS+=("${WORDPRESS_DEV_URL:-http://localhost:8082}")
+                SOURCE_URLS+=("http://localhost:8082")
+                SOURCE_URLS+=("${STAGING_URL:-http://localhost:8083}")
+                SOURCE_URLS+=("http://localhost:8083")
+                echo "📝 Production environment: Converting development and staging URLs to production"
+                ;;
+            *)
+                # Development or unknown: Replace any other URLs
+                SOURCE_URLS+=("${PRODUCTION_URL:-https://yourdomain.com}")
+                SOURCE_URLS+=("${STAGING_URL:-http://localhost:8083}")
+                echo "📝 Development environment: Converting staging/production URLs to development"
+                ;;
+        esac
         
-        # Get development URL from environment (fallback to default)
-        DEV_URL="${WORDPRESS_DEV_URL:-http://localhost:8082}"
-        echo "Converting from: $DEV_URL to: $WORDPRESS_HOME"
+        # Perform URL replacements
+        total_replacements=0
+        for source_url in "${SOURCE_URLS[@]}"; do
+            if [ ! -z "$source_url" ] && [ "$source_url" != "$TARGET_URL" ]; then
+                echo "🔄 Converting: $source_url → $TARGET_URL"
+                
+                # Count replacements for this URL
+                replacement_count=$(wp search-replace "$source_url" "$TARGET_URL" --allow-root --dry-run 2>/dev/null | grep -o '[0-9]\+ replacements' | head -1 | grep -o '[0-9]\+' || echo "0")
+                
+                if [ "$replacement_count" -gt 0 ]; then
+                    echo "   Found $replacement_count instances to replace"
+                    
+                    # Perform the actual replacement (including GUIDs for staging/dev environments)
+                    if [ "$ENVIRONMENT" = "production" ]; then
+                        # Production: Skip GUIDs to maintain WordPress best practices
+                        wp search-replace "$source_url" "$TARGET_URL" --allow-root --skip-columns=guid || echo "   ⚠️ Some replacements may have had issues"
+                    else
+                        # Staging/Development: Include GUIDs for complete URL conversion
+                        wp search-replace "$source_url" "$TARGET_URL" --allow-root || echo "   ⚠️ Some replacements may have had issues"
+                    fi
+                    
+                    total_replacements=$((total_replacements + replacement_count))
+                else
+                    echo "   No instances found"
+                fi
+            fi
+        done
         
-        # Count and replace development URLs
-        dev_url_count=$(wp search-replace "$DEV_URL" "$WORDPRESS_HOME" --allow-root --dry-run | grep -o '[0-9]\+ replacements' | head -1 | grep -o '[0-9]\+' || echo "0")
-        echo "Found $dev_url_count development URLs to replace"
-        
-        wp search-replace \
-            "$DEV_URL" "$WORDPRESS_HOME" \
-            --allow-root
-        
-                         # Note: Removed generic localhost replacement to prevent URL corruption
-                 # Only specific development URL replacement is performed above
-        
-        # Update WordPress core options
-        echo "Updating WordPress core options..."
+        # Update WordPress core options (always ensure these are correct)
+        echo "🔧 Updating WordPress core options..."
         wp option update home "$WORDPRESS_HOME" --allow-root
         wp option update siteurl "$WORDPRESS_SITEURL" --allow-root
         
         # Verify the update worked
-        UPDATED_HOME=$(wp option get home --allow-root 2>/dev/null)
-        if [ "$UPDATED_HOME" = "$WORDPRESS_HOME" ]; then
+        UPDATED_HOME=$(wp option get home --allow-root 2>/dev/null || echo "")
+        UPDATED_SITEURL=$(wp option get siteurl --allow-root 2>/dev/null || echo "")
+        
+        if [ "$UPDATED_HOME" = "$WORDPRESS_HOME" ] && [ "$UPDATED_SITEURL" = "$WORDPRESS_SITEURL" ]; then
             echo "✅ URLs updated successfully and verified"
-            echo "📊 Database cleaned of all development URLs"
+            echo "📊 Environment: $ENVIRONMENT"
             echo "📈 Replacement Summary:"
-            echo "   - Development URLs ($DEV_URL): $dev_url_count replaced"
-            echo "   - Total replacements: $dev_url_count"
+            echo "   - Total URL replacements: $total_replacements"
+            echo "   - Home URL: $UPDATED_HOME"
+            echo "   - Site URL: $UPDATED_SITEURL"
         else
-            echo "❌ URL update failed - current: $UPDATED_HOME, expected: $WORDPRESS_HOME"
+            echo "⚠️ URL verification had mixed results:"
+            echo "   Expected Home: $WORDPRESS_HOME"
+            echo "   Actual Home: $UPDATED_HOME"
+            echo "   Expected Site: $WORDPRESS_SITEURL"
+            echo "   Actual Site: $UPDATED_SITEURL"
         fi
+        
+        echo "✅ URL update process completed for $ENVIRONMENT environment"
+    else
+        echo "⚠️ WORDPRESS_HOME or WORDPRESS_SITEURL not set, skipping URL updates"
     fi
 }
 
