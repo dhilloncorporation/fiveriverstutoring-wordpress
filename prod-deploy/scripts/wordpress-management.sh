@@ -2,6 +2,11 @@
 
 # WordPress Management Script for Five Rivers Tutoring
 # Manages WordPress container on GCP VM
+# 
+# USAGE:
+# - Direct usage: ./wordpress-management.sh [COMMAND]
+# - Called by deploy.sh: ./deploy.sh wp-deploy (calls this script)
+# - This script handles both direct WordPress management and deployment
 
 set -e
 
@@ -158,6 +163,170 @@ check_wordpress_status() {
     fi
 }
 
+# Function to deploy WordPress with direct image transfer
+deploy_wordpress() {
+    print_header "Deploying WordPress with Direct Image Transfer"
+    
+    if ! check_vm_status; then
+        exit 1
+    fi
+    
+    VM_STATUS=$(gcloud compute instances describe "$VM_NAME" --zone="$ZONE" --format="value(status)")
+    if [ "$VM_STATUS" != "RUNNING" ]; then
+        print_status "Starting VM first..."
+        gcloud compute instances start "$VM_NAME" --zone="$ZONE"
+        print_status "Waiting for VM to start..."
+        sleep 30
+    fi
+    
+    print_status "Deploying WordPress using direct image transfer..."
+    
+    # Step 1: Check if image transfer is needed
+    print_status "Step 1: Checking if image transfer is needed..."
+    
+    LOCAL_IMAGE="fiverivertutoring-wordpress:production"
+    
+    print_status "Local image: $LOCAL_IMAGE"
+    
+    # Check if local image exists
+    if ! docker images | grep -q "fiverivertutoring-wordpress.*production"; then
+        print_error "Local image '$LOCAL_IMAGE' not found!"
+        print_status "Please build the image first with: cd docker && ./build-environments.sh production"
+        exit 1
+    fi
+    
+    # Check if image already exists on VM
+    print_status "Checking if image already exists on VM..."
+    IMAGE_EXISTS_ON_VM=$(gcloud compute ssh "$VM_NAME" --zone="$ZONE" --tunnel-through-iap --command="docker images | grep -q 'fiverivertutoring-wordpress.*production' && echo 'EXISTS' || echo 'NOT_EXISTS'" 2>/dev/null || echo "NOT_EXISTS")
+    
+    if [ "$IMAGE_EXISTS_ON_VM" = "EXISTS" ]; then
+        print_status "✅ Image already exists on VM - skipping transfer!"
+        SKIP_TRANSFER=true
+    else
+        print_status "📦 Image not found on VM - will transfer..."
+        SKIP_TRANSFER=false
+        
+        # Save image to tar file for transfer
+        print_status "Saving image to tar file..."
+        docker save "$LOCAL_IMAGE" > /tmp/fiverivertutoring-wordpress-production.tar
+        
+        if [ $? -eq 0 ]; then
+            print_status "✅ Image saved to tar file successfully!"
+        else
+            print_error "❌ Failed to save image to tar file"
+            exit 1
+        fi
+    fi
+    
+    # Step 2: Deploy to VM
+    print_status "Step 2: Deploying to GCP VM..."
+    
+    # Copy files to VM
+    print_status "Copying deployment files to VM..."
+    
+    # Create the directory on VM first (detect VM user dynamically)
+    print_status "Creating deployment directory on VM..."
+    
+    # Use the correct VM user (hardcoded for reliability)
+    print_status "Setting VM user..."
+    VM_USER="dhilloncorporations"
+    print_status "VM user set to: $VM_USER"
+    print_status "Full user details: $VM_USER@$VM_NAME"
+    print_status "SSH command: gcloud compute ssh $VM_USER@$VM_NAME --zone=$ZONE --tunnel-through-iap"
+    
+    gcloud compute ssh "$VM_USER@$VM_NAME" --zone="$ZONE" --tunnel-through-iap --command="
+        # Use current SSH user's home directory (should be dhilloncorporations)
+        USER_HOME=\"/home/$VM_USER\"
+        DEPLOY_DIR=\"\$USER_HOME/wordpress\"
+        mkdir -p \"\$DEPLOY_DIR\" && \
+        chmod 755 \"\$DEPLOY_DIR\" && \
+        echo \"Deployment directory created: \$DEPLOY_DIR\"
+    "
+    
+    # Check if directory creation was successful
+    if [ $? -eq 0 ]; then
+        print_status "✅ Directory created successfully on VM"
+    else
+        print_warning "⚠️  Directory creation may have failed, but continuing..."
+    fi
+    
+    # Generate clean Docker environment file from properties
+    print_status "Generating clean Docker environment file..."
+    if [ -f "./generate-docker-env.sh" ]; then
+        bash "./generate-docker-env.sh"
+        if [ $? -eq 0 ]; then
+            print_status "✅ Environment file generated successfully"
+        else
+            print_status "⚠️  Environment file generation failed, continuing with existing file"
+        fi
+    else
+        print_warning "⚠️  Environment generator script not found, using existing file"
+    fi
+    
+    # Copy the generated clean environment file
+    print_status "Copying clean environment file..."
+    
+    # Check if the clean properties file exists locally
+    if [ ! -f "../properties/fiverivertutoring-wordpress-clean.properties" ]; then
+        print_error "Clean properties file not found locally. Regenerating..."
+        bash "./generate-docker-env.sh"
+    fi
+    
+    # Copy the file directly to the final destination using gcloud scp
+    print_status "Copying clean properties file directly to VM..."
+    gcloud compute scp "../properties/fiverivertutoring-wordpress-clean.properties" "$VM_USER@$VM_NAME:/home/$VM_USER/wordpress/fiverivertutoring-wordpress-clean.properties" --zone="$ZONE" --tunnel-through-iap
+    
+    # Verify the file was copied successfully
+    gcloud compute ssh "$VM_USER@$VM_NAME" --zone="$ZONE" --tunnel-through-iap --command="
+        # Check if file exists and show details
+        if [ -f \"/home/$VM_USER/wordpress/fiverivertutoring-wordpress-clean.properties\" ]; then
+            echo '✅ Properties file copied successfully to final location'
+            ls -la \"/home/$VM_USER/wordpress/fiverivertutoring-wordpress-clean.properties\"
+        else
+            echo '❌ Properties file not found in final location'
+            exit 1
+        fi
+    "
+    
+    # Copy the Docker image tar file (only if needed)
+    if [ "$SKIP_TRANSFER" = "false" ]; then
+        print_status "Copying Docker image to VM..."
+        gcloud compute scp /tmp/fiverivertutoring-wordpress-production.tar "$VM_NAME:/tmp/" --zone="$ZONE" --tunnel-through-iap
+    else
+        print_status "Skipping image copy - already exists on VM"
+    fi
+    
+    # Step 3: Deploy using Docker Run
+    print_status "Step 3: Starting WordPress with Docker Run..."
+    gcloud compute ssh "$VM_USER@$VM_NAME" --zone="$ZONE" --tunnel-through-iap --command="
+        # Use detected VM user
+        USER_HOME=\"/home/$VM_USER\"
+        DEPLOY_DIR=\"\$USER_HOME/wordpress\"
+        
+        cd \"\$DEPLOY_DIR\" &&
+        echo 'Stopping any existing containers...' &&
+        docker stop fiverivers-wp-prod || true &&
+        docker rm fiverivers-wp-prod || true &&
+        echo 'Starting WordPress with Docker Run...' &&
+        docker run -d \\
+            --name fiverivers-wp-prod \\
+            --restart always \\
+            --env-file \"\$DEPLOY_DIR/fiverivertutoring-wordpress-clean.properties\" \\
+            -p 80:80 \\
+            -v fiverivers_uploads:/var/www/html/wp-content/uploads \\
+            -v fiverivers_cache:/var/www/html/wp-content/cache \\
+            fiverivertutoring-wordpress:production &&
+        echo 'Deployment completed!'
+    "
+    
+    # Cleanup temporary files
+    rm -f /tmp/fiverivertutoring-wordpress-production.tar
+    
+    print_status "✅ WordPress deployment completed!"
+    print_status "🌐 Access at: http://$(gcloud compute instances describe "$VM_NAME" --zone="$ZONE" --format="value(networkInterfaces[0].accessConfigs[0].natIP)")"
+    print_status "📦 Image: $LOCAL_IMAGE (transferred directly)"
+}
+
 # Function to backup WordPress
 backup_wordpress() {
     print_header "Backing Up WordPress"
@@ -198,6 +367,7 @@ show_help() {
     echo "Usage: $0 [COMMAND]"
     echo ""
     echo "Commands:"
+    echo "  deploy          Deploy WordPress with direct image transfer (recommended)"
     echo "  start           Start WordPress (start VM if needed)"
     echo "  stop            Stop WordPress (stop entire VM)"
     echo "  restart         Restart WordPress (restart VM)"
@@ -207,6 +377,7 @@ show_help() {
     echo "  help            Show this help message"
     echo ""
     echo "Examples:"
+    echo "  $0 deploy       # Deploy WordPress with direct image transfer"
     echo "  $0 start        # Start WordPress"
     echo "  $0 status       # Check status"
     echo "  $0 logs         # View logs"
@@ -220,6 +391,9 @@ show_help() {
 # Main function
 main() {
     case "${1:-help}" in
+        deploy)
+            deploy_wordpress
+            ;;
         start)
             start_wordpress
             ;;
