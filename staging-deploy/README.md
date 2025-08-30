@@ -1,58 +1,154 @@
-# Five Rivers Tutoring - Staging Environment
+# Staging Deployment - Five Rivers Tutoring
 
-A staging environment for testing code and database changes before production deployment.
+## 🧪 **Staging Environment Overview**
 
-## 🎯 Purpose
+The staging environment provides a **local testing ground** that mirrors production as closely as possible. It uses the same Docker image as production but runs locally for easy testing and validation.
 
-The staging environment allows you to:
-- **Test code changes** before production
-- **Test database migrations** safely
-- **Preview new features** in a production-like environment
-- **Debug issues** without affecting live site
-- **Train team members** on new features
+## 🎯 **Purpose & Benefits**
 
-## 📁 Files
+### **What Staging Provides**
+- **Production Parity**: Identical environment to production
+- **Local Testing**: Test changes before production deployment
+- **Content Validation**: Verify plugins, themes, and content work correctly
+- **Database Testing**: Test with staging database
+- **Performance Testing**: Validate image performance locally
 
-- `docker-compose.staging.yml` - Staging Docker configuration
-- `env.staging` - Staging environment variables
-- `staging-commands.sh` - Easy management commands
-- `staging-db-setup.sh` - Database management commands
-- `README.md` - This documentation
+### **Why Use Staging**
+- **Reduce Risk**: Catch issues before production
+- **Faster Iteration**: Local testing is faster than cloud deployment
+- **Confidence**: What works in staging works in production
+- **Team Collaboration**: Multiple developers can test simultaneously
 
-## 🚀 Quick Start
+## 🏗️ **Architecture**
 
-### 1. Set up Staging Database
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Local Development Machine                │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+        ┌─────────────────────────────────────────────────┐
+        │              Docker Compose                     │
+        │  ┌─────────────────┐  ┌─────────────────────┐  │
+        │  │  WordPress      │  │   MySQL Database    │  │
+        │  │  - Staging      │  │   - Local/External  │  │
+        │  │  - Image-based  │  │   - Staging data    │  │
+        │  │  - Port 8083    │  │   - Test content    │  │
+        │  └─────────────────┘  └─────────────────────┘  │
+        └─────────────────────────────────────────────────┘
+                              │
+                              ▼
+        ┌─────────────────────────────────────────────────┐
+        │              Custom Docker Image                │
+        │  ┌─────────────────┐  ┌─────────────────────┐  │
+        │  │   Staging Tag   │  │   Development       │  │
+        │  │  :staging       │  │   Tools Included    │  │
+        │  │  - Dev tools    │  │   - Composer        │  │
+        │  │  - Debug mode   │  │   - Git, WP-CLI     │  │
+        │  │  - Full stack   │  │   - MySQL client    │  │
+        │  └─────────────────┘  └─────────────────────┘  │
+        └─────────────────────────────────────────────────┘
+```
+
+## 🚀 **Quick Start**
+
+### **1. Build Staging Image**
+```bash
+cd docker
+./dockerbuild-environments.sh staging
+```
+
+### **2. Start Staging Environment**
 ```bash
 cd staging-deploy
-./staging-db-setup.sh copy-develop
-```
-
-### 2. Start Staging Environment
-```bash
 ./staging-commands.sh start
 ```
 
-### 3. Access Staging Site
-- **URL**: http://localhost:8083
-- **Admin**: http://localhost:8083/wp-admin
+### **3. Access Staging**
+- **URL**: `http://localhost:8083`
+- **Admin**: `http://localhost:8083/wp-admin`
+- **Database**: External staging database
 
-### 4. Stop Staging Environment
-```bash
-./staging-commands.sh stop
+## 📁 **Directory Structure**
+
+```
+staging-deploy/
+├── docker-compose.staging.yml           # Staging Docker Compose
+├── fiverivertutoring-wordpress-staging.properties # Staging config
+├── staging-commands.sh                  # Staging management script
+├── db-scripts/                          # Database management
+│   ├── manage-staging-db-setup.sh      # Database setup script
+│   ├── backups/                         # Database backups
+│   └── fiverivertutoring_staging_db.sql # Staging database dump
+└── README.md                            # This file
 ```
 
-## 🛠️ Management Commands
+## 🔧 **Configuration**
 
-### Environment Commands
+### **Staging Properties**
+```properties
+# Database Configuration
+WORDPRESS_DB_HOST=192.168.50.158
+WORDPRESS_DB_NAME=fiverivertutoring_staging
+WORDPRESS_DB_USER=fiverivertutoring_staging_user
+WORDPRESS_DB_PASSWORD=your_staging_password
+
+# WordPress Configuration
+WORDPRESS_DEBUG=true
+WORDPRESS_CONFIG_EXTRA=define('WP_DEBUG_LOG', true);
+```
+
+### **Docker Compose Configuration**
+```yaml
+services:
+  fiverivers-wp:
+    image: fiverivertutoring-wordpress:staging
+    container_name: fiverivers-wp-staging
+    restart: always
+    env_file:
+      - fiverivertutoring-wordpress-staging.properties
+    ports:
+      - "8083:80"
+    volumes:
+      - fiverivers_uploads:/var/www/html/wp-content/uploads
+      - fiverivers_cache:/var/www/html/wp-content/cache
+```
+
+## 🗄️ **Database Management**
+
+### **Database Setup Scripts**
+The `db-scripts/` directory contains scripts for managing the staging database:
+
 ```bash
-# Start staging
+cd staging-deploy/db-scripts
+
+# Copy development database to staging
+./manage-staging-db-setup.sh copy-develop
+
+# Verify staging database
+./manage-staging-db-setup.sh verify
+
+# Reset staging database
+./manage-staging-db-setup.sh reset
+```
+
+### **Database Operations**
+- **Copy from Development**: Sync latest development data
+- **Verify Setup**: Check database connectivity and content
+- **Reset Database**: Clean slate for testing
+- **Backup Management**: Create and restore backups
+
+## 🛠️ **Management Commands**
+
+### **Staging Commands Script**
+```bash
+cd staging-deploy
+
+# Start staging environment
 ./staging-commands.sh start
 
-# Stop staging
+# Stop staging environment
 ./staging-commands.sh stop
-
-# Restart staging
-./staging-commands.sh restart
 
 # Check status
 ./staging-commands.sh status
@@ -60,231 +156,171 @@ cd staging-deploy
 # View logs
 ./staging-commands.sh logs
 
-# Build and start (force rebuild)
-./staging-commands.sh build
-
-# Clean environment
-./staging-commands.sh clean
+# Open shell in container
+./staging-commands.sh shell
 ```
 
-### Database Commands
-```bash
-# Copy develop database to staging
-./staging-db-setup.sh copy-develop
+### **Available Commands**
+- **`start`**: Start staging environment
+- **`stop`**: Stop staging environment
+- **`restart`**: Restart staging environment
+- **`status`**: Check current status
+- **`logs`**: View WordPress logs
+- **`shell`**: Open shell in container
 
-# Verify staging database
-./staging-db-setup.sh verify
+## 🔄 **Development Workflow**
 
-# Backup staging database
-./staging-db-setup.sh backup
+### **Typical Workflow**
+1. **Make Changes**: Develop in development environment
+2. **Build Image**: Create new staging image with changes
+3. **Test Staging**: Deploy and test in staging environment
+4. **Validate**: Ensure everything works correctly
+5. **Deploy Production**: Deploy to production when ready
 
-# Restore staging database
-./staging-db-setup.sh restore backup_file.sql
+### **Content Updates**
+1. **Edit Content**: Make changes in development
+2. **Build Staging**: `./dockerbuild-environments.sh staging`
+3. **Test Changes**: Verify in staging environment
+4. **Build Production**: `./dockerbuild-environments.sh production`
+5. **Deploy Production**: Use production deployment script
 
-# Reset staging database
-./staging-db-setup.sh reset
-```
+## 🐳 **Docker Image Details**
 
-### Production Deployment Commands
-```bash
-# Navigate to GCP database migration folder
-cd ../gcp-deploy/databasemigration
+### **Staging Image Features**
+- **Tag**: `fiverivertutoring-wordpress:staging`
+- **Base**: `wordpress:latest`
+- **Development Tools**: Composer, Git, WP-CLI, MySQL client
+- **Debug Mode**: WordPress debugging enabled
+- **Full Stack**: All development packages included
 
-# Set up production environment
-./production-deploy.sh setup-production
+### **Image Contents**
+- WordPress core files
+- Custom plugins and themes
+- Upload images and media
+- Composer dependencies
+- Development tools and utilities
 
-# Deploy staging to production
-./production-deploy.sh staging-to-production
+## 🔍 **Testing & Validation**
 
-# Deploy develop directly to production
-./production-deploy.sh develop-to-production
+### **What to Test in Staging**
+- **Plugin Functionality**: Ensure all plugins work correctly
+- **Theme Display**: Verify theme renders properly
+- **Content Display**: Check content appears correctly
+- **Database Connectivity**: Verify database operations
+- **Performance**: Test image loading and response times
 
-# Backup production database
-./production-deploy.sh backup-production
+### **Validation Checklist**
+- [ ] WordPress loads without errors
+- [ ] All plugins are active and functional
+- [ ] Theme displays correctly
+- [ ] Content is visible and properly formatted
+- [ ] Database operations work
+- [ ] No console errors in browser
+- [ ] Performance is acceptable
 
-# Verify production database
-./production-deploy.sh verify-production
-```
+## 🚨 **Troubleshooting**
 
-## 🗄️ Database Management
+### **Common Issues**
 
-### Staging Database
-- **Database Name**: `fiveriverstutoring_staging_db`
-- **Host**: `192.168.50.158`
-- **User**: `fiverriversadmin`
-- **Password**: `Password@123`
-
-### Production Database
-- **Configuration**: Externalized in `env.production`
-- **Security**: Separate credentials from staging
-- **Domain**: Configurable production domain
-
-### Copy Develop Data to Staging
-```bash
-./staging-db-setup.sh copy-develop
-```
-This copies all your develop content (posts, plugins, settings) to staging.
-
-### Backup Staging Database
-```bash
-./staging-db-setup.sh backup
-```
-This creates: `staging_backup_YYYYMMDD_HHMMSS.sql`
-
-### Restore Staging Database
-```bash
-./staging-db-setup.sh restore staging_backup_20241227_143022.sql
-```
-
-## 🔧 Production Configuration
-
-Production configuration has been moved to `../gcp-deploy/databasemigration/` for better organization.
-
-### Setting up Production Environment
-1. **Navigate to GCP database migration folder:**
-   ```bash
-   cd ../gcp-deploy/databasemigration
-   ```
-
-2. **Copy example file:**
-   ```bash
-   cp env.production.example env.production
-   ```
-
-3. **Edit production configuration:**
-   ```bash
-   nano env.production
-   ```
-
-4. **Update with your values:**
-   ```bash
-   WORDPRESS_DB_HOST=your-production-db-host.com
-   WORDPRESS_DB_PASSWORD=your-secure-production-password
-   PRODUCTION_DOMAIN=your-production-domain.com
-   GCP_PROJECT_ID=your-gcp-project-id
-   ```
-
-### Production Environment Variables
-See `../gcp-deploy/databasemigration/README.md` for complete production configuration details.
-
-## 🔄 Workflow
-
-### Development Workflow
-1. **Make changes** to code in `fiverivertutoring_wordpress/`
-2. **Copy develop to staging**: `./staging-db-setup.sh copy-develop`
-3. **Start staging**: `./staging-commands.sh start`
-4. **Test changes** at http://localhost:8083
-5. **Fix issues** if needed
-6. **Stop staging**: `./staging-commands.sh stop`
-7. **Deploy to production** when ready
-
-### Database Workflow
-1. **Copy develop to staging**: `./staging-db-setup.sh copy-develop`
-2. **Test migrations**: Apply database changes
-3. **Verify functionality**: Test all features
-4. **Apply to production**: When confident
-
-### Production Deployment Workflow
-1. **Navigate to GCP database migration**: `cd ../gcp-deploy/databasemigration`
-2. **Set up production config**: `./production-deploy.sh setup-production`
-3. **Copy env.production.example to env.production**
-4. **Update production values** in env.production
-5. **Deploy staging to production**: `./production-deploy.sh staging-to-production`
-6. **Verify production**: `./production-deploy.sh verify-production`
-
-## 🌐 Environment Differences
-
-| Feature | Local | Staging | Production |
-|---------|-------|---------|------------|
-| **Port** | 8082 | 8083 | 80/443 |
-| **Database** | fiveriverstutoring_db | fiveriverstutoring_staging_db | fiveriverstutoring_prod_db |
-| **Debug** | Enabled | Enabled | Disabled |
-| **Environment** | local | staging | production |
-| **Purpose** | Development | Testing | Live |
-| **Config** | env.example | env.staging | env.production |
-
-## 🔧 Configuration
-
-### Environment Variables (`env.staging`)
-```bash
-WORDPRESS_DB_HOST=192.168.50.158
-WORDPRESS_DB_USER=fiverriversadmin
-WORDPRESS_DB_PASSWORD=Password@123
-WORDPRESS_DB_NAME=fiveriverstutoring_staging_db
-WORDPRESS_HOME=http://localhost:8083
-WORDPRESS_SITEURL=http://localhost:8083
-WP_ENVIRONMENT_TYPE=staging
-WORDPRESS_DEBUG=1
-```
-
-### Docker Configuration
-- **Container Name**: `fiverivertutoring-wp-staging`
-- **Port**: `8083:80`
-- **Network**: `fiverivertutoring_staging_network`
-- **Volumes**: Same as local (shared wp-content)
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-#### Port Already in Use
+#### **Port Already in Use**
 ```bash
 # Check what's using port 8083
 netstat -tulpn | grep 8083
 
-# Kill process or change port in docker-compose.staging.yml
+# Kill process or change port in docker-compose
 ```
 
-#### Database Connection Issues
+#### **Database Connection Issues**
 ```bash
+# Verify database credentials
+cat fiverivertutoring-wordpress-staging.properties
+
 # Check database connectivity
-docker exec fiverivertutoring-wp-staging mysql -h 192.168.50.158 -u fiverriversadmin -pPassword@123 -e "SELECT 1;"
+mysql -h 192.168.50.158 -u fiverivertutoring_staging_user -p
 ```
 
-#### Container Won't Start
+#### **Image Not Found**
 ```bash
-# Check logs
-./staging-commands.sh logs
+# Check if staging image exists
+docker images | grep fiverivertutoring-wordpress
 
-# Clean and rebuild
-./staging-commands.sh clean
-./staging-commands.sh build
+# Build image if missing
+cd docker && ./dockerbuild-environments.sh staging
 ```
 
-#### Production Configuration Issues
+### **Debug Commands**
 ```bash
-# Navigate to GCP database migration folder
-cd ../gcp-deploy/databasemigration
+# Check container status
+docker ps -a
 
-# Check if env.production exists
-ls -la env.production
+# View container logs
+docker logs fiverivers-wp-staging
 
-# Set up production environment
-./production-deploy.sh setup-production
+# Inspect container
+docker inspect fiverivers-wp-staging
+
+# Check WordPress files
+docker exec -it fiverivers-wp-staging ls -la /var/www/html/wp-content
 ```
 
-### Reset Staging Environment
+## 📊 **Performance Considerations**
+
+### **Local vs Production**
+- **Local Performance**: May be slower due to local resources
+- **Production Parity**: Same image ensures consistent behavior
+- **Testing Accuracy**: Local testing reflects production reality
+
+### **Resource Requirements**
+- **Memory**: Minimum 2GB RAM recommended
+- **Storage**: At least 5GB free space
+- **CPU**: Multi-core processor for better performance
+
+## 🔄 **Synchronization**
+
+### **Keeping Staging Current**
+- **Regular Updates**: Sync with development database weekly
+- **Image Rebuilds**: Rebuild image when content changes
+- **Plugin Updates**: Test new plugins in staging first
+- **Theme Changes**: Validate theme modifications
+
+### **Sync Commands**
 ```bash
-# Complete reset
-./staging-commands.sh clean
-./staging-commands.sh build
+# Sync database from development
+cd staging-deploy/db-scripts
+./manage-staging-db-setup.sh copy-develop
+
+# Rebuild staging image
+cd docker
+./dockerbuild-environments.sh staging
+
+# Restart staging environment
+cd staging-deploy
+./staging-commands.sh restart
 ```
 
-## 📝 Best Practices
+## 📚 **Related Documentation**
 
-1. **Always backup** before major changes
-2. **Test thoroughly** in staging before production
-3. **Use staging** for all database migrations
-4. **Keep staging** similar to production
-5. **Document changes** made in staging
-6. **Clean up** staging regularly
-7. **Secure production credentials** in gcp-deploy/databasemigration/env.production
-8. **Never commit** gcp-deploy/databasemigration/env.production to version control
+- [Main Project README](../README.md) - Project overview
+- [Docker Architecture](../docker/README.md) - Image building strategy
+- [Production Deployment](../prod-deploy/README.md) - Production deployment
+- [Development Guide](../develop-deploy/README.md) - Local development
 
-## 🔗 Related Files
+## 🎯 **Best Practices**
 
-- `../local-deploy/` - Local development
-- `../gcp-deploy/` - Production deployment
-- `../gcp-deploy/databasemigration/` - Production database migration
-- `../fiverivertutoring_wordpress/` - WordPress content
-- `../config/` - Configuration files 
+1. **Always test in staging** before production deployment
+2. **Keep staging database current** with development data
+3. **Validate all changes** in staging environment
+4. **Use staging for plugin testing** before production
+5. **Regular image rebuilds** to stay current
+6. **Document staging issues** for team knowledge
+
+## 🎉 **Summary**
+
+The staging environment provides:
+- **Production parity** for accurate testing
+- **Local development** for fast iteration
+- **Risk reduction** before production deployment
+- **Team collaboration** for testing and validation
+- **Confidence building** that changes will work in production
+
+**Staging: Your safety net for production deployments!** 🧪✅ 

@@ -41,3 +41,9 @@ terraform apply valueladder-plan.tfplan
 
 
 gcloud sql connect INSTANCE_NAME --user=root
+
+
+### GCE Commands
+ gcloud compute ssh jamr-websites-prod-wordpress --zone=australia-southeast1-a --tunnel-through-iap --command="docker exec klt-wordpress-qayk tail -20 /var/log/apache2/error.log"
+
+

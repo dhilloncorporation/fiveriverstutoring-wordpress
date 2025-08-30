@@ -113,9 +113,15 @@ db_restore() {
     echo "✅ Staging database restored!"
 }
 
+shell() {
+    echo "Opening shell in staging container..."
+    ensure_docker
+    docker exec -it fiverivertutoring-wp-staging /bin/bash
+}
+
 usage() {
     cat <<USAGE
-Usage: ./staging-commands.sh {start|stop|restart|logs|status|build|clean|db-backup|db-restore}
+Usage: ./staging-commands.sh {start|stop|restart|logs|status|build|clean|db-backup|db-restore|shell}
 
 Commands:
   start       - Start staging environment
@@ -127,11 +133,13 @@ Commands:
   clean       - Clean staging environment
   db-backup   - Backup staging database
   db-restore  - Restore staging database (requires backup file)
+  shell       - Open shell in staging container
 
 Examples:
   ./staging-commands.sh start
   ./staging-commands.sh db-backup
   ./staging-commands.sh db-restore "$SCRIPT_DIR/staging_backup_20250127_143022.sql"
+  ./staging-commands.sh shell
 USAGE
 }
 
@@ -145,6 +153,7 @@ case "$cmd" in
     clean) clean ;;
     db-backup) db_backup ;;
     db-restore) shift || true; db_restore "${1:-}" ;;
+    shell) shell ;;
     *) usage ;;
 esac
 

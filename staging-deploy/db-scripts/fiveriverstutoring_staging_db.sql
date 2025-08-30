@@ -56,3 +56,19 @@ SELECT DATABASE();
 
 -- Show staging database tables (will be empty initially)
 SHOW TABLES;
+
+USE fiveriverstutoring_production_db;
+
+-- Check table counts (this will show REAL numbers)
+SELECT 'wp_posts' as table_name, COUNT(*) as record_count FROM wp_posts;
+SELECT 'wp_users' as table_name, COUNT(*) as record_count FROM wp_users;
+SELECT 'wp_options' as table_name, COUNT(*) as record_count FROM wp_options;
+SELECT 'wp_terms' as table_name, COUNT(*) as record_count FROM wp_terms;
+SELECT 'wp_comments' as table_name, COUNT(*) as record_count FROM wp_comments;
+
+-- Show sample posts (this will show REAL content)
+SELECT ID, post_title, post_type, post_status, post_date 
+FROM wp_posts 
+WHERE post_status = 'publish' 
+ORDER BY post_date DESC 
+LIMIT 5;

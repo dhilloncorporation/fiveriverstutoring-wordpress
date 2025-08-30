@@ -458,13 +458,29 @@ verify_database() {
 activate_plugins() {
     echo "🔌 Activating essential plugins..."
     
-    # List of plugins to auto-activate (only essential plugins you plan to use)
+    # Debug: Check wp-content/plugins directory structure
+    echo "🔍 Checking wp-content/plugins directory:"
+    if [ -d "wp-content/plugins" ]; then
+        echo "📁 wp-content/plugins directory exists"
+        echo "📋 Contents:"
+        ls -la wp-content/plugins/ || echo "⚠️ Could not list plugins directory"
+    else
+        echo "❌ wp-content/plugins directory not found"
+    fi
+    
+    # Debug: List all available plugins first
+    echo "🔍 Available plugins in WordPress:"
+    wp plugin list --allow-root --status=inactive || echo "⚠️ Could not list plugins"
+    
+    # List of plugins to auto-activate (only essential plugins you actually have)
     ESSENTIAL_PLUGINS=(
-        "wpforms-lite"
         "wordpress-seo"
+        "elementor"
+        "contact-us"
     )
     
     for plugin in "${ESSENTIAL_PLUGINS[@]}"; do
+        echo "🔍 Checking plugin: $plugin"
         if wp plugin is-installed "$plugin" --allow-root; then
             if ! wp plugin is-active "$plugin" --allow-root; then
                 echo "Activating plugin: $plugin"
@@ -474,6 +490,16 @@ activate_plugins() {
             fi
         else
             echo "Plugin not installed: $plugin"
+            # Debug: Check if plugin directory exists
+            if [ -d "wp-content/plugins/$plugin" ]; then
+                echo "⚠️ Plugin directory exists but not recognized by WordPress: wp-content/plugins/$plugin"
+                # Check if plugin has proper structure
+                if [ -f "wp-content/plugins/$plugin/$plugin.php" ] || [ -f "wp-content/plugins/$plugin/contact-us.php" ]; then
+                    echo "✅ Plugin main file found"
+                else
+                    echo "❌ Plugin main file not found"
+                fi
+            fi
         fi
     done
     

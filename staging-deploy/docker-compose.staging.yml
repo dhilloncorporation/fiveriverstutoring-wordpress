@@ -1,7 +1,7 @@
 services:
   # Five Rivers Tutoring - Staging Environment (Custom Docker Image)
   fiverivers-wp:
-    image: fiverivertutoring-wordpress:latest
+    image: fiverivertutoring-wordpress:staging
     container_name: fiverivers-wp-staging
     restart: always
     env_file:
@@ -9,8 +9,7 @@ services:
     ports:
       - "8083:80"
     volumes:
-      # Persistent storage for uploads and cache
-      - fiverivers_uploads:/var/www/html/wp-content/uploads
+      # Images are now part of the Docker image
       - fiverivers_cache:/var/www/html/wp-content/cache
       # NO wp-content mount (uses image content)
     networks:
@@ -18,7 +17,6 @@ services:
     # No depends_on - external database connection
 
 volumes:
-  fiverivers_uploads:
   fiverivers_cache:
 
 networks:

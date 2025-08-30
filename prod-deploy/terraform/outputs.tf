@@ -29,34 +29,44 @@ output "logging_sink" {
 # DATABASE OUTPUTS
 # =============================================================================
 
-output "wordpress_database_host" {
-  value       = module.database.wordpress_database_host
-  description = "WordPress database host"
-}
-
 output "wordpress_database_name" {
-  value       = module.database.wordpress_database_name
+  value       = module.database.database_name
   description = "WordPress database name"
 }
 
 output "wordpress_admin_user" {
-  value       = module.database.wordpress_admin_user
+  value       = module.database.admin_user_name
   description = "WordPress admin user name"
 }
 
 output "wordpress_app_user" {
-  value       = module.database.wordpress_app_user
+  value       = module.database.app_user_name
   description = "WordPress application user name"
 }
 
-output "database_setup_complete" {
-  value       = module.database.database_setup_complete
-  description = "Database setup completion status"
+output "app_user_privileges_granted" {
+  value       = module.database.app_user_privileges_granted
+  description = "Status of app user privileges"
+}
+
+output "admin_user_privileges_granted" {
+  value       = module.database.admin_user_privileges_granted
+  description = "Status of admin user privileges"
 }
 
 output "database_instance" {
-  value       = module.database.database_instance
+  value       = var.wordpress_db_instance
   description = "Cloud SQL instance name"
+}
+
+output "authorized_networks_configured" {
+  value       = module.database.authorized_networks_configured
+  description = "Status of Cloud SQL authorized networks configuration"
+}
+
+output "wordpress_vm_ip" {
+  value       = module.database.wordpress_vm_ip
+  description = "Current WordPress VM external IP for database access"
 }
 
 # =============================================================================

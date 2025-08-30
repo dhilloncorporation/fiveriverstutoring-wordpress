@@ -47,53 +47,12 @@ resource "google_compute_instance" "wordpress" {
     }
   }
 
-  # Metadata for automatic WordPress container startup
+  # Metadata for basic VM configuration
+  # Note: WordPress containers are now managed manually via deployment script
   metadata = {
-    gce-container-declaration = yamlencode({
-      spec = {
-        containers = [{
-          image = var.wordpress_image
-          name  = "wordpress"
-          ports = [{
-            containerPort = var.wordpress_container_port
-            hostPort      = var.wordpress_host_port
-          }]
-          env = [
-            {
-              name  = "WORDPRESS_DB_HOST"
-              value = var.wordpress_db_host  # Use direct Cloud SQL IP
-            },
-            {
-              name  = "WORDPRESS_DB_NAME"
-              value = var.wordpress_db_name
-            },
-            {
-              name  = "WORDPRESS_DB_USER"
-              value = var.wordpress_db_user
-            },
-            {
-              name  = "WORDPRESS_DB_PASSWORD"
-              value = var.wordpress_db_password
-            }
-          ]
-          volumeMounts = [{
-            name      = "wp-content"
-            mountPath = var.wordpress_content_mount_path
-          }]
-          # Simple WordPress startup - no Cloud SQL Proxy needed
-          command = ["/usr/local/bin/entrypoint.sh"]
-          args = ["apache2-foreground"]
-        }]
-        volumes = [{
-          name = "wp-content"
-          hostPath = {
-            path = var.wordpress_content_host_path
-          }
-        }]
-      }
-    })
     google-logging-enabled    = "true"
     google-monitoring-enabled = "true"
+    # Removed gce-container-declaration - containers managed manually
   }
 
   # Service account with proper scopes for GCR access
